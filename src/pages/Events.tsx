@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
-import { Plus, Edit, Trash, Calendar, Users, Music } from "lucide-react";
+import { Plus, Edit, Trash, Calendar, Users, Music, Eye } from "lucide-react";
 
 interface Event {
   id: string;
@@ -397,6 +398,14 @@ export default function Events() {
                       <TableCell>{event.profiles?.name || "-"}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
+                          <Link to={`/events/${event.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
                           <Button
                             variant="outline"
                             size="sm"
