@@ -43,16 +43,36 @@ interface Song {
   key: string | null;
 }
 
+interface EventParticipant {
+  id: string;
+  participant_id: string;
+  instrument: string | null;
+  profiles: {
+    id: string;
+    name: string;
+  };
+}
+
+interface Profile {
+  id: string;
+  name: string;
+}
+
 export default function EventDetail() {
   const { id } = useParams();
   const { toast } = useToast();
   const [event, setEvent] = useState<Event | null>(null);
   const [eventSongs, setEventSongs] = useState<EventSong[]>([]);
   const [availableSongs, setAvailableSongs] = useState<Song[]>([]);
+  const [eventParticipants, setEventParticipants] = useState<EventParticipant[]>([]);
+  const [availableProfiles, setAvailableProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddSongDialogOpen, setIsAddSongDialogOpen] = useState(false);
+  const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState("");
   const [customKey, setCustomKey] = useState("");
+  const [instrument, setInstrument] = useState("");
   const [isMedley, setIsMedley] = useState(false);
   const [medleyGroup, setMedleyGroup] = useState("");
 
@@ -61,6 +81,8 @@ export default function EventDetail() {
       fetchEventDetails();
       fetchEventSongs();
       fetchAvailableSongs();
+      fetchEventParticipants();
+      fetchAvailableProfiles();
     }
   }, [id]);
 
@@ -118,6 +140,37 @@ export default function EventDetail() {
       setAvailableSongs(data || []);
     } catch (error) {
       console.error("Error fetching songs:", error);
+    }
+  };
+
+  const fetchEventParticipants = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("event_participants")
+        .select(`
+          *,
+          profiles(id, name)
+        `)
+        .eq("event_id", id);
+
+      if (error) throw error;
+      setEventParticipants(data || []);
+    } catch (error) {
+      console.error("Error fetching participants:", error);
+    }
+  };
+
+  const fetchAvailableProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .order("name");
+
+      if (error) throw error;
+      setAvailableProfiles(data || []);
+    } catch (error) {
+      console.error("Error fetching profiles:", error);
     }
   };
 
@@ -210,6 +263,56 @@ export default function EventDetail() {
       
       updateSongOrder(currentSong.id, nextSong.song_order);
       updateSongOrder(nextSong.id, currentSong.song_order);
+    }
+  };
+
+  const addParticipantToEvent = async () => {
+    if (!selectedProfileId) return;
+
+    try {
+      const { error } = await supabase
+        .from("event_participants")
+        .insert({
+          event_id: id,
+          participant_id: selectedProfileId,
+          instrument: instrument || null,
+        });
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Participante adicionado ao evento!" });
+      setSelectedProfileId("");
+      setInstrument("");
+      setIsAddParticipantDialogOpen(false);
+      fetchEventParticipants();
+    } catch (error) {
+      console.error("Error adding participant:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar participante",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeParticipantFromEvent = async (participantId: string) => {
+    try {
+      const { error } = await supabase
+        .from("event_participants")
+        .delete()
+        .eq("id", participantId);
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Participante removido do evento!" });
+      fetchEventParticipants();
+    } catch (error) {
+      console.error("Error removing participant:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao remover participante",
+        variant: "destructive",
+      });
     }
   };
 
@@ -358,14 +461,15 @@ export default function EventDetail() {
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Setlist</CardTitle>
-            <CardDescription>
-              {eventSongs.length} música(s) no evento
-              {medleyGroups.length > 0 && ` • ${medleyGroups.length} medley(s)`}
-            </CardDescription>
-          </CardHeader>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Setlist</CardTitle>
+              <CardDescription>
+                {eventSongs.length} música(s) no evento
+                {medleyGroups.length > 0 && ` • ${medleyGroups.length} medley(s)`}
+              </CardDescription>
+            </CardHeader>
           <CardContent>
             {eventSongs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -435,6 +539,117 @@ export default function EventDetail() {
             )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Participantes</CardTitle>
+                <CardDescription>
+                  {eventParticipants.length} participante(s) no evento
+                </CardDescription>
+              </div>
+              <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Adicionar Participante
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Participante ao Evento</DialogTitle>
+                    <DialogDescription>
+                      Escolha um membro para participar do evento
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="participant">Participante</Label>
+                      <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um participante" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableProfiles
+                            .filter(profile => !eventParticipants.some(ep => ep.participant_id === profile.id))
+                            .map((profile) => (
+                              <SelectItem key={profile.id} value={profile.id}>
+                                {profile.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="instrument">Instrumento (opcional)</Label>
+                      <Input
+                        id="instrument"
+                        value={instrument}
+                        onChange={(e) => setInstrument(e.target.value)}
+                        placeholder="Ex: Guitarra, Baixo, Bateria, Vocal"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button onClick={addParticipantToEvent} className="flex-1">
+                        Adicionar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsAddParticipantDialogOpen(false)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {eventParticipants.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum participante adicionado</p>
+                <p className="text-sm">Clique em "Adicionar Participante" para começar</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Instrumento</TableHead>
+                    <TableHead className="w-24">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {eventParticipants.map((participant) => (
+                    <TableRow key={participant.id}>
+                      <TableCell className="font-medium">
+                        {participant.profiles.name}
+                      </TableCell>
+                      <TableCell>
+                        {participant.instrument || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeParticipantFromEvent(participant.id)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
       </div>
     </div>
   );
