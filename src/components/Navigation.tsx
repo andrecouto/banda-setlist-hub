@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Music, Calendar, Users, LogOut } from "lucide-react";
+import { Music, Calendar, Users, LogOut, User } from "lucide-react";
 
 export function Navigation() {
   const { signOut, user } = useAuth();
@@ -39,6 +39,15 @@ export function Navigation() {
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-sm text-muted-foreground">{user?.email}</span>
+          <Link to="/profile">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <User className="h-4 w-4" />
+              Perfil
+            </Button>
+          </Link>
           <Button
             variant="outline"
             onClick={handleSignOut}
