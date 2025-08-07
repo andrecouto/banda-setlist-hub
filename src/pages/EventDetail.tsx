@@ -58,14 +58,26 @@ interface Profile {
   name: string;
 }
 
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profiles: {
+    name: string;
+  };
+}
+
 export default function EventDetail() {
   const { id } = useParams();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
   const [eventSongs, setEventSongs] = useState<EventSong[]>([]);
   const [availableSongs, setAvailableSongs] = useState<Song[]>([]);
   const [eventParticipants, setEventParticipants] = useState<EventParticipant[]>([]);
   const [availableProfiles, setAvailableProfiles] = useState<Profile[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddSongDialogOpen, setIsAddSongDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
@@ -73,6 +85,7 @@ export default function EventDetail() {
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [customKey, setCustomKey] = useState("");
   const [instrument, setInstrument] = useState("");
+  const [newComment, setNewComment] = useState("");
   const [isMedley, setIsMedley] = useState(false);
   const [medleyGroup, setMedleyGroup] = useState("");
 
@@ -83,6 +96,7 @@ export default function EventDetail() {
       fetchAvailableSongs();
       fetchEventParticipants();
       fetchAvailableProfiles();
+      fetchComments();
     }
   }, [id]);
 
@@ -171,6 +185,67 @@ export default function EventDetail() {
       setAvailableProfiles(data || []);
     } catch (error) {
       console.error("Error fetching profiles:", error);
+    }
+  };
+
+  const fetchComments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("comments")
+        .select(`
+          *,
+          profiles(name)
+        `)
+        .eq("event_id", id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setComments(data || []);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
+
+  const addComment = async () => {
+    if (!newComment.trim() || !user) return;
+
+    try {
+      // Get user profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profileError || !profile) {
+        toast({
+          title: "Erro",
+          description: "Perfil do usuário não encontrado",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from("comments")
+        .insert({
+          content: newComment.trim(),
+          event_id: id,
+          user_id: profile.id,
+        });
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Comentário adicionado!" });
+      setNewComment("");
+      fetchComments();
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar comentário",
+        variant: "destructive",
+      });
     }
   };
 
@@ -649,7 +724,64 @@ export default function EventDetail() {
             )}
           </CardContent>
         </Card>
-      </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Comentários e Observações</CardTitle>
+            <CardDescription>
+              {comments.length} comentário(s) sobre o evento
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Adicione um comentário sobre o evento..."
+                  className="flex-1"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      addComment();
+                    }
+                  }}
+                />
+                <Button onClick={addComment} disabled={!newComment.trim()}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {comments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-2xl mb-2">💬</div>
+                  <p>Nenhum comentário ainda</p>
+                  <p className="text-sm">Seja o primeiro a comentar sobre este evento</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-medium text-sm">{comment.profiles.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(comment.created_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm">{comment.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        </div>
       </div>
     </div>
   );
