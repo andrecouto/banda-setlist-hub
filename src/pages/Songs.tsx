@@ -4,42 +4,67 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
-import { Plus, Edit, Trash } from "lucide-react";
+import { SongCard } from "@/components/SongCard";
+import { Plus, Search, Grid, List, Filter, Music } from "lucide-react";
 
 interface Song {
   id: string;
   name: string;
   key: string | null;
   created_at: string;
+  usage_count?: number;
+  last_played?: string;
 }
 
 export default function Songs() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [songs, setSongs] = useState<Song[]>([]);
+  const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [formData, setFormData] = useState({ name: "", key: "" });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [keyFilter, setKeyFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'name' | 'key' | 'recent' | 'popular'>('name');
 
   useEffect(() => {
     fetchSongs();
   }, []);
 
+  useEffect(() => {
+    filterAndSortSongs();
+  }, [songs, searchTerm, keyFilter, sortBy]);
+
   const fetchSongs = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch songs with usage statistics from event_songs
+      const { data: songsData, error: songsError } = await supabase
         .from("songs")
-        .select("*")
+        .select(`
+          *,
+          event_songs!song_id(count)
+        `)
         .order("name", { ascending: true });
 
-      if (error) throw error;
-      setSongs(data || []);
+      if (songsError) throw songsError;
+
+      // Transform data to include usage counts
+      const songsWithStats = songsData?.map(song => ({
+        ...song,
+        usage_count: song.event_songs?.length || 0,
+        last_played: null // Would need to implement proper last played tracking
+      })) || [];
+
+      setSongs(songsWithStats);
     } catch (error) {
       console.error("Error fetching songs:", error);
       toast({
@@ -50,6 +75,32 @@ export default function Songs() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterAndSortSongs = () => {
+    let filtered = songs.filter(song => {
+      const matchesSearch = song.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesKey = keyFilter === "all" || song.key === keyFilter;
+      return matchesSearch && matchesKey;
+    });
+
+    // Sort songs
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'key':
+          return (a.key || '').localeCompare(b.key || '');
+        case 'recent':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'popular':
+          return (b.usage_count || 0) - (a.usage_count || 0);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredSongs(filtered);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,6 +176,11 @@ export default function Songs() {
     setIsDialogOpen(true);
   };
 
+  const getUniqueKeys = () => {
+    const keys = songs.map(song => song.key).filter(Boolean);
+    return [...new Set(keys)];
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -143,7 +199,7 @@ export default function Songs() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Músicas</h1>
-            <p className="text-muted-foreground">Gerencie o repertório</p>
+            <p className="text-muted-foreground">Gerencie o repertório musical</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -204,61 +260,245 @@ export default function Songs() {
           </Dialog>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Repertório</CardTitle>
-            <CardDescription>
-              {songs.length} música(s) cadastrada(s)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {songs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma música cadastrada
+        {/* Search and Filter Controls */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar músicas..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Tom</TableHead>
-                    <TableHead>Criada em</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {songs.map((song) => (
-                    <TableRow key={song.id}>
-                      <TableCell className="font-medium">{song.name}</TableCell>
-                      <TableCell>{song.key || "-"}</TableCell>
-                      <TableCell>
-                        {new Date(song.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(song)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(song.id)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+              
+              <div className="flex gap-2">
+                <Select value={keyFilter} onValueChange={setKeyFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Tom" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {getUniqueKeys().map(key => (
+                      <SelectItem key={key} value={key!}>{key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Nome</SelectItem>
+                    <SelectItem value="key">Tom</SelectItem>
+                    <SelectItem value="recent">Recentes</SelectItem>
+                    <SelectItem value="popular">Populares</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="flex items-center border rounded-lg p-1">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                  >
+                    <Grid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total</CardTitle>
+              <Music className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{songs.length}</div>
+              <p className="text-xs text-muted-foreground">músicas cadastradas</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tons</CardTitle>
+              <Filter className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{getUniqueKeys().length}</div>
+              <p className="text-xs text-muted-foreground">tons diferentes</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Filtradas</CardTitle>
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{filteredSongs.length}</div>
+              <p className="text-xs text-muted-foreground">resultados encontrados</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Mais Tocada</CardTitle>
+              <Music className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {Math.max(...songs.map(s => s.usage_count || 0), 0)}
+              </div>
+              <p className="text-xs text-muted-foreground">execuções</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Songs Display */}
+        {filteredSongs.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="text-muted-foreground">
+                <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">
+                  {songs.length === 0 ? "Nenhuma música cadastrada" : "Nenhuma música encontrada"}
+                </h3>
+                <p className="mb-4">
+                  {songs.length === 0 
+                    ? "Comece adicionando suas primeiras músicas" 
+                    : "Tente ajustar os filtros de busca"
+                  }
+                </p>
+                {songs.length === 0 && (
+                  <Button onClick={openCreateDialog} className="flex items-center gap-2 mx-auto">
+                    <Plus className="h-4 w-4" />
+                    Nova Música
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Tabs defaultValue="all" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="all">Todas ({filteredSongs.length})</TabsTrigger>
+              <TabsTrigger value="favorites">Mais Tocadas</TabsTrigger>
+              <TabsTrigger value="recent">Recentes</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="all">
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredSongs.map((song) => (
+                    <SongCard
+                      key={song.id}
+                      song={song}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-4">Nome</th>
+                            <th className="text-left p-4">Tom</th>
+                            <th className="text-left p-4">Execuções</th>
+                            <th className="text-left p-4">Criada em</th>
+                            <th className="text-left p-4">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredSongs.map((song) => (
+                            <tr key={song.id} className="border-b hover:bg-muted/50">
+                              <td className="p-4 font-medium">{song.name}</td>
+                              <td className="p-4">{song.key || "-"}</td>
+                              <td className="p-4">{song.usage_count || 0}</td>
+                              <td className="p-4">
+                                {new Date(song.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="p-4">
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(song)}
+                                  >
+                                    Editar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(song.id)}
+                                  >
+                                    Excluir
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="favorites">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredSongs
+                  .filter(song => (song.usage_count || 0) > 0)
+                  .sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0))
+                  .map((song) => (
+                    <SongCard
+                      key={song.id}
+                      song={song}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="recent">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredSongs
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .slice(0, 12)
+                  .map((song) => (
+                    <SongCard
+                      key={song.id}
+                      song={song}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </div>
   );
