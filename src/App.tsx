@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Bands from "./pages/Bands";
+import BandDetail from "./pages/BandDetail";
 import Events from "./pages/Events";
 import Profile from "./pages/Profile";
 import EventDetail from "./pages/EventDetail";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/bands" element={<Bands />} />
+            <Route path="/bands/:id" element={<BandDetail />} />
             <Route path="/events" element={<Events />} />
             <Route path="/events/:id" element={<EventDetail />} />
             <Route path="/songs" element={<Songs />} />

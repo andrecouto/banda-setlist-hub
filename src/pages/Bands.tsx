@@ -5,18 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
-import { Plus, Edit, Trash } from "lucide-react";
+import { BandCard } from "@/components/BandCard";
+import { Plus, Grid, List } from "lucide-react";
 
 interface Band {
   id: string;
   name: string;
   description: string | null;
   created_at: string;
+  member_count?: number;
+  event_count?: number;
+  song_count?: number;
 }
 
 export default function Bands() {
@@ -27,20 +30,54 @@ export default function Bands() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBand, setEditingBand] = useState<Band | null>(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [userRole, setUserRole] = useState<string>('band_member');
 
   useEffect(() => {
     fetchBands();
+    fetchUserRole();
   }, []);
+
+  const fetchUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+      setUserRole(data.role);
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
 
   const fetchBands = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch bands with aggregated counts
+      const { data: bandsData, error: bandsError } = await supabase
         .from("bands")
-        .select("*")
+        .select(`
+          *,
+          profiles!band_id(count),
+          events!band_id(count)
+        `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setBands(data || []);
+      if (bandsError) throw bandsError;
+
+      // Transform data to include counts
+      const bandsWithCounts = bandsData?.map(band => ({
+        ...band,
+        member_count: band.profiles?.length || 0,
+        event_count: band.events?.length || 0,
+        song_count: 0 // Would need to implement song-band relationship
+      })) || [];
+
+      setBands(bandsWithCounts);
     } catch (error) {
       console.error("Error fetching bands:", error);
       toast({
@@ -146,13 +183,31 @@ export default function Bands() {
             <h1 className="text-3xl font-bold text-foreground">Bandas</h1>
             <p className="text-muted-foreground">Gerencie suas bandas</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openCreateDialog} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Nova Banda
+          <div className="flex items-center gap-2">
+            <div className="flex items-center border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid className="h-4 w-4" />
               </Button>
-            </DialogTrigger>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+            {userRole === 'superuser' && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={openCreateDialog} className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Nova Banda
+                  </Button>
+                </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
@@ -205,64 +260,113 @@ export default function Bands() {
                 </div>
               </form>
             </DialogContent>
-          </Dialog>
+              </Dialog>
+            )}
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Lista de Bandas</CardTitle>
-            <CardDescription>
-              {bands.length} banda(s) cadastrada(s)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {bands.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma banda cadastrada
+        {bands.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="text-muted-foreground">
+                <Plus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">Nenhuma banda cadastrada</h3>
+                <p className="mb-4">Comece criando sua primeira banda</p>
+                {userRole === 'superuser' && (
+                  <Button onClick={openCreateDialog} className="flex items-center gap-2 mx-auto">
+                    <Plus className="h-4 w-4" />
+                    Nova Banda
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="mb-4 flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                {bands.length} banda(s) encontrada(s)
+              </p>
+            </div>
+            
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {bands.map((band) => (
+                  <BandCard
+                    key={band.id}
+                    band={band}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    canManage={userRole === 'superuser'}
+                  />
+                ))}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Criada em</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bands.map((band) => (
-                    <TableRow key={band.id}>
-                      <TableCell className="font-medium">{band.name}</TableCell>
-                      <TableCell>{band.description || "-"}</TableCell>
-                      <TableCell>
-                        {new Date(band.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(band)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(band.id)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Lista de Bandas</CardTitle>
+                  <CardDescription>
+                    Visualização em tabela
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-2">Nome</th>
+                          <th className="text-left p-2">Membros</th>
+                          <th className="text-left p-2">Eventos</th>
+                          <th className="text-left p-2">Criada em</th>
+                          {userRole === 'superuser' && <th className="text-left p-2">Ações</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bands.map((band) => (
+                          <tr key={band.id} className="border-b hover:bg-muted/50">
+                            <td className="p-2">
+                              <div>
+                                <div className="font-medium">{band.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {band.description || "Sem descrição"}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-2">{band.member_count || 0}</td>
+                            <td className="p-2">{band.event_count || 0}</td>
+                            <td className="p-2">
+                              {new Date(band.created_at).toLocaleDateString()}
+                            </td>
+                            {userRole === 'superuser' && (
+                              <td className="p-2">
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(band)}
+                                  >
+                                    Editar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(band.id)}
+                                  >
+                                    Excluir
+                                  </Button>
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
+          </>
+        )}
       </div>
     </div>
   );
