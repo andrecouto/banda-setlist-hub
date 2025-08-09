@@ -19,42 +19,51 @@ export function Navigation() {
   ];
 
   return (
-    <nav className="bg-card border-b border-border p-4">
+    <nav className="bg-card/80 backdrop-blur-sm border-b border-border/50 p-4 sticky top-0 z-50">
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-6">
-          <h1 className="text-xl font-bold text-foreground">Band Manager</h1>
-          <div className="flex space-x-4">
+          <h1 className="text-xl font-bold text-gradient font-poppins">Band Manager</h1>
+          <div className="flex space-x-2">
             {navItems.map(({ path, label, icon: Icon }) => (
               <Link key={path} to={path}>
                 <Button
                   variant={location.pathname === path ? "default" : "ghost"}
-                  className="flex items-center gap-2"
+                  size="sm"
+                  className={`flex items-center gap-2 hover-lift ${
+                    location.pathname === path 
+                      ? "btn-gradient shadow-glow" 
+                      : "hover:bg-primary/10"
+                  }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {label}
+                  <span className="hidden sm:inline">{label}</span>
                 </Button>
               </Link>
             ))}
           </div>
         </div>
-        <div className="flex items-center space-x-4">
-          <span className="text-sm text-muted-foreground">{user?.email}</span>
+        <div className="flex items-center space-x-3">
+          <span className="text-sm text-muted-foreground hidden md:inline">
+            {user?.email}
+          </span>
           <Link to="/profile">
             <Button
               variant="outline"
-              className="flex items-center gap-2"
+              size="sm"
+              className="flex items-center gap-2 hover-lift"
             >
               <User className="h-4 w-4" />
-              Perfil
+              <span className="hidden sm:inline">Perfil</span>
             </Button>
           </Link>
           <Button
             variant="outline"
+            size="sm"
             onClick={handleSignOut}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 hover-lift text-destructive hover:text-destructive-foreground hover:bg-destructive"
           >
             <LogOut className="h-4 w-4" />
-            Sair
+            <span className="hidden sm:inline">Sair</span>
           </Button>
         </div>
       </div>

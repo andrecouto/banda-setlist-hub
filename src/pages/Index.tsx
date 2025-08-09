@@ -162,62 +162,61 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Navigation />
-      <div className="container mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Dashboard</h1>
+      <div className="container mx-auto p-6 space-y-8">
+        <div className="mb-8 animate-fade-in">
+          <h1 className="text-4xl font-bold text-gradient mb-2">Dashboard</h1>
           <p className="text-muted-foreground text-lg">
             Bem-vindo ao Band Manager, {user?.email}
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up">{/* Stats Cards */}
+          <Card className="card-modern hover-lift">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Eventos</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalEvents}</div>
+              <div className="text-2xl font-bold text-primary">{stats.totalEvents}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="card-modern hover-lift">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Músicas Cadastradas</CardTitle>
-              <Music className="h-4 w-4 text-muted-foreground" />
+              <Music className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSongs}</div>
+              <div className="text-2xl font-bold text-accent">{stats.totalSongs}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="card-modern hover-lift">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Bandas Ativas</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalBands}</div>
+              <div className="text-2xl font-bold text-success">{stats.totalBands}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="card-modern hover-lift">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Comentários</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <MessageSquare className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalComments}</div>
+              <div className="text-2xl font-bold text-warning">{stats.totalComments}</div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-scale-in">
           {/* Upcoming Events */}
-          <Card>
+          <Card className="card-glass hover-glow">{/* Upcoming Events */}
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
@@ -254,8 +253,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* Recent Events */}
-          <Card>
+          <Card className="card-glass hover-glow">{/* Recent Events */}
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
@@ -295,7 +293,7 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Popular Songs */}
-          <Card>
+          <Card className="card-glass hover-glow">{/* Popular Songs */}
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
@@ -333,8 +331,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
-          <Card>
+          <Card className="card-modern">{/* Quick Actions */}
             <CardHeader>
               <CardTitle>Ações Rápidas</CardTitle>
               <CardDescription>
@@ -343,25 +340,25 @@ const Index = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               <Link to="/events">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start hover-lift">{/* My Profile */}
                   <Calendar className="h-4 w-4 mr-2" />
                   Gerenciar Eventos
                 </Button>
               </Link>
               <Link to="/songs">
-                <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start hover-lift">{/* Manage Events */}
                   <Music className="h-4 w-4 mr-2" />
                   Ver Músicas
                 </Button>
               </Link>
               <Link to="/bands">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start hover-lift">{/* View Songs */}
                   <Users className="h-4 w-4 mr-2" />
                   Gerenciar Bandas
                 </Button>
               </Link>
               <Link to="/profile">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start hover-lift">{/* Manage Bands */}
                   <Users className="h-4 w-4 mr-2" />
                   Meu Perfil
                 </Button>

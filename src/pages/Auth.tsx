@@ -72,12 +72,17 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent"></div>
+      <div className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse-glow"></div>
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse-glow delay-1000"></div>
+      
+      <Card className="w-full max-w-md card-glass animate-scale-in relative z-10">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Sistema de Bandas</CardTitle>
-          <CardDescription>
-            Gerencie os eventos da sua banda
+          <CardTitle className="text-3xl font-bold text-gradient font-poppins">Band Manager</CardTitle>
+          <CardDescription className="text-base">
+            Sistema completo para gerenciamento de bandas
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -109,7 +114,7 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full btn-gradient" disabled={isLoading}>
                   {isLoading ? "Entrando..." : "Entrar"}
                 </Button>
               </form>
@@ -147,7 +152,7 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full btn-gradient" disabled={isLoading}>
                   {isLoading ? "Cadastrando..." : "Cadastrar"}
                 </Button>
               </form>
