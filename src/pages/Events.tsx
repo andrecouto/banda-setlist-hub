@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,13 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
-import { Plus, Edit, Trash, Calendar, Users, Music, Eye } from "lucide-react";
+import { EventCard } from "@/components/EventCard";
+import { Plus, Calendar, Users, Music, Search, Filter } from "lucide-react";
 
 interface Event {
   id: string;
@@ -46,6 +46,9 @@ export default function Events() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBand, setSelectedBand] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [formData, setFormData] = useState({
     name: "",
     event_date: "",
@@ -211,6 +214,30 @@ export default function Events() {
     setIsDialogOpen(true);
   };
 
+  const filteredEvents = events.filter(event => {
+    const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.bands.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesBand = selectedBand === "" || event.band_id === selectedBand;
+    return matchesSearch && matchesBand;
+  });
+
+  const upcomingEvents = filteredEvents.filter(event => new Date(event.event_date) > new Date());
+  const pastEvents = filteredEvents.filter(event => new Date(event.event_date) <= new Date());
+
+  const getEventStats = () => {
+    return {
+      total: events.length,
+      upcoming: events.filter(event => new Date(event.event_date) > new Date()).length,
+      thisMonth: events.filter(event => {
+        const eventDate = new Date(event.event_date);
+        const now = new Date();
+        return eventDate.getMonth() === now.getMonth() && eventDate.getFullYear() === now.getFullYear();
+      }).length,
+    };
+  };
+
+  const stats = getEventStats();
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -230,6 +257,20 @@ export default function Events() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Eventos</h1>
             <p className="text-muted-foreground">Gerencie seus eventos e apresentações</p>
+            <div className="flex gap-4 mt-2">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {stats.total} eventos
+              </Badge>
+              <Badge variant="default" className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {stats.upcoming} próximos
+              </Badge>
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Music className="h-3 w-3" />
+                {stats.thisMonth} este mês
+              </Badge>
+            </div>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -354,81 +395,91 @@ export default function Events() {
           </Dialog>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Lista de Eventos</CardTitle>
-            <CardDescription>
-              {events.length} evento(s) cadastrado(s)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {events.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhum evento cadastrado
+        <div className="space-y-6">
+          {/* Filtros e Busca */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                Buscar e Filtrar
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Buscar eventos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <Select value={selectedBand} onValueChange={setSelectedBand}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filtrar por banda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas as bandas</SelectItem>
+                    {bands.map((band) => (
+                      <SelectItem key={band.id} value={band.id}>
+                        {band.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Evento</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Banda</TableHead>
-                    <TableHead>Líder</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {events.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{event.name}</div>
-                          {event.youtube_link && (
-                            <Badge variant="outline" className="mt-1">
-                              <Music className="h-3 w-3 mr-1" />
-                              YouTube
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(event.event_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>{event.bands.name}</TableCell>
-                      <TableCell>{event.profiles?.name || "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Link to={`/events/${event.id}`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(event)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(event.id)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+            </CardContent>
+          </Card>
+
+          <Tabs value="upcoming" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upcoming">Próximos Eventos ({upcomingEvents.length})</TabsTrigger>
+              <TabsTrigger value="past">Eventos Passados ({pastEvents.length})</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="upcoming" className="space-y-4">
+              {upcomingEvents.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum evento próximo encontrado</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {upcomingEvents.map((event) => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
                   ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="past" className="space-y-4">
+              {pastEvents.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum evento passado encontrado</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {pastEvents.map((event) => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
