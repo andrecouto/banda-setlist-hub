@@ -14,12 +14,12 @@ interface EventCardProps {
     bands: { name: string };
     profiles: { name: string } | null;
   };
-  onEdit: (event: any) => void;
-  onDelete: (id: string) => void;
+  onEdit?: (event: any) => void;
+  onDelete?: (id: string) => void;
   canManage?: boolean;
 }
 
-export function EventCard({ event, onEdit, onDelete, canManage = true }: EventCardProps) {
+export function EventCard({ event, onEdit, onDelete, canManage = false }: EventCardProps) {
   const eventDate = new Date(event.event_date);
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
@@ -69,22 +69,26 @@ export function EventCard({ event, onEdit, onDelete, canManage = true }: EventCa
               )}
             </div>
           </div>
-          {canManage && (
+          {canManage && (onEdit || onDelete) && (
             <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEdit(event)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(event.id)}
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit(event)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(event.id)}
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           )}
         </div>

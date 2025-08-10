@@ -49,6 +49,7 @@ export default function Events() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBand, setSelectedBand] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [userRole, setUserRole] = useState<string>('band_member');
   const [formData, setFormData] = useState({
     name: "",
     event_date: "",
@@ -62,7 +63,25 @@ export default function Events() {
     fetchEvents();
     fetchBands();
     fetchProfiles();
+    fetchUserRole();
   }, []);
+
+  const fetchUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+      setUserRole(data.role);
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -272,13 +291,14 @@ export default function Events() {
               </Badge>
             </div>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openCreateDialog} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Novo Evento
-              </Button>
-            </DialogTrigger>
+          {userRole === 'superuser' && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={openCreateDialog} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Novo Evento
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
@@ -392,7 +412,8 @@ export default function Events() {
                 </div>
               </form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -450,8 +471,9 @@ export default function Events() {
                     <EventCard
                       key={event.id}
                       event={event}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
+                      onEdit={userRole === 'superuser' ? handleEdit : undefined}
+                      onDelete={userRole === 'superuser' ? handleDelete : undefined}
+                      canManage={userRole === 'superuser'}
                     />
                   ))}
                 </div>
@@ -471,8 +493,9 @@ export default function Events() {
                     <EventCard
                       key={event.id}
                       event={event}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
+                      onEdit={userRole === 'superuser' ? handleEdit : undefined}
+                      onDelete={userRole === 'superuser' ? handleDelete : undefined}
+                      canManage={userRole === 'superuser'}
                     />
                   ))}
                 </div>

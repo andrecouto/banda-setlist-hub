@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { SongCard } from "@/components/SongCard";
-import { Plus, Search, Grid, List, Filter, Music } from "lucide-react";
+import { Plus, Search, Grid, List, Filter, Music, Users } from "lucide-react";
 
 interface Song {
   id: string;
@@ -22,27 +22,68 @@ interface Song {
   last_played?: string;
 }
 
+interface Band {
+  id: string;
+  name: string;
+}
+
 export default function Songs() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [songs, setSongs] = useState<Song[]>([]);
   const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
+  const [bands, setBands] = useState<Band[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [formData, setFormData] = useState({ name: "", key: "" });
   const [searchTerm, setSearchTerm] = useState("");
   const [keyFilter, setKeyFilter] = useState<string>("all");
+  const [bandFilter, setBandFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'name' | 'key' | 'recent' | 'popular'>('name');
+  const [userRole, setUserRole] = useState<string>('band_member');
 
   useEffect(() => {
     fetchSongs();
+    fetchBands();
+    fetchUserRole();
   }, []);
 
   useEffect(() => {
     filterAndSortSongs();
-  }, [songs, searchTerm, keyFilter, sortBy]);
+  }, [songs, searchTerm, keyFilter, bandFilter, sortBy]);
+
+  const fetchUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+      setUserRole(data.role);
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
+
+  const fetchBands = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("bands")
+        .select("id, name")
+        .order("name");
+
+      if (error) throw error;
+      setBands(data || []);
+    } catch (error) {
+      console.error("Error fetching bands:", error);
+    }
+  };
 
   const fetchSongs = async () => {
     try {
@@ -201,13 +242,14 @@ export default function Songs() {
             <h1 className="text-3xl font-bold text-foreground">Músicas</h1>
             <p className="text-muted-foreground">Gerencie o repertório musical</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openCreateDialog} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Nova Música
-              </Button>
-            </DialogTrigger>
+          {userRole === 'superuser' && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={openCreateDialog} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Nova Música
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
@@ -257,7 +299,8 @@ export default function Songs() {
                 </div>
               </form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          )}
         </div>
 
         {/* Search and Filter Controls */}
@@ -285,6 +328,18 @@ export default function Songs() {
                     <SelectItem value="all">Todos</SelectItem>
                     {getUniqueKeys().map(key => (
                       <SelectItem key={key} value={key!}>{key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={bandFilter} onValueChange={setBandFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Banda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {bands.map(band => (
+                      <SelectItem key={band.id} value={band.id}>{band.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -386,7 +441,7 @@ export default function Songs() {
                     : "Tente ajustar os filtros de busca"
                   }
                 </p>
-                {songs.length === 0 && (
+                {songs.length === 0 && userRole === 'superuser' && (
                   <Button onClick={openCreateDialog} className="flex items-center gap-2 mx-auto">
                     <Plus className="h-4 w-4" />
                     Nova Música
@@ -410,8 +465,8 @@ export default function Songs() {
                     <SongCard
                       key={song.id}
                       song={song}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
+                      onEdit={userRole === 'superuser' ? handleEdit : undefined}
+                      onDelete={userRole === 'superuser' ? handleDelete : undefined}
                     />
                   ))}
                 </div>
@@ -439,22 +494,30 @@ export default function Songs() {
                                 {new Date(song.created_at).toLocaleDateString()}
                               </td>
                               <td className="p-4">
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEdit(song)}
-                                  >
-                                    Editar
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDelete(song.id)}
-                                  >
-                                    Excluir
-                                  </Button>
-                                </div>
+                                 <div className="flex gap-1">
+                                   {userRole === 'superuser' ? (
+                                     <>
+                                       <Button
+                                         variant="ghost"
+                                         size="sm"
+                                         onClick={() => handleEdit(song)}
+                                       >
+                                         Editar
+                                       </Button>
+                                       <Button
+                                         variant="ghost"
+                                         size="sm"
+                                         onClick={() => handleDelete(song.id)}
+                                       >
+                                         Excluir
+                                       </Button>
+                                     </>
+                                   ) : (
+                                     <span className="text-sm text-muted-foreground">
+                                       Visualização
+                                     </span>
+                                   )}
+                                 </div>
                               </td>
                             </tr>
                           ))}

@@ -12,8 +12,8 @@ interface SongCardProps {
     usage_count?: number;
     last_played?: string;
   };
-  onEdit: (song: any) => void;
-  onDelete: (id: string) => void;
+  onEdit?: (song: any) => void;
+  onDelete?: (id: string) => void;
 }
 
 export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
@@ -37,22 +37,28 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
               </Badge>
             </div>
           </div>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(song)}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(song.id)}
-            >
-              <Trash className="h-4 w-4" />
-            </Button>
-          </div>
+          {(onEdit || onDelete) && (
+            <div className="flex gap-1">
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit(song)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(song.id)}
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-0">

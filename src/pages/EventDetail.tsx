@@ -88,6 +88,7 @@ export default function EventDetail() {
   const [newComment, setNewComment] = useState("");
   const [isMedley, setIsMedley] = useState(false);
   const [medleyGroup, setMedleyGroup] = useState("");
+  const [userRole, setUserRole] = useState<string>('band_member');
 
   useEffect(() => {
     if (id) {
@@ -97,8 +98,26 @@ export default function EventDetail() {
       fetchEventParticipants();
       fetchAvailableProfiles();
       fetchComments();
+      fetchUserRole();
     }
   }, [id]);
+
+  const fetchUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+      setUserRole(data.role);
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
 
   const fetchEventDetails = async () => {
     try {
@@ -456,13 +475,14 @@ export default function EventDetail() {
               )}
             </div>
 
-            <Dialog open={isAddSongDialogOpen} onOpenChange={setIsAddSongDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Adicionar Música
-                </Button>
-              </DialogTrigger>
+            {userRole === 'superuser' && (
+              <Dialog open={isAddSongDialogOpen} onOpenChange={setIsAddSongDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Adicionar Música
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Adicionar Música ao Setlist</DialogTitle>
@@ -532,7 +552,8 @@ export default function EventDetail() {
                   </div>
                 </div>
               </DialogContent>
-            </Dialog>
+              </Dialog>
+            )}
           </div>
         </div>
 
@@ -581,31 +602,35 @@ export default function EventDetail() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => moveUp(index)}
-                            disabled={index === 0}
-                          >
-                            <ArrowUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => moveDown(index)}
-                            disabled={index === eventSongs.length - 1}
-                          >
-                            <ArrowDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeSongFromEvent(eventSong.id)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {userRole === 'superuser' ? (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => moveUp(index)}
+                              disabled={index === 0}
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => moveDown(index)}
+                              disabled={index === eventSongs.length - 1}
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeSongFromEvent(eventSong.id)}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Visualização</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -624,13 +649,14 @@ export default function EventDetail() {
                   {eventParticipants.length} participante(s) no evento
                 </CardDescription>
               </div>
-              <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Adicionar Participante
-                  </Button>
-                </DialogTrigger>
+                {userRole === 'superuser' && (
+                  <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Adicionar Participante
+                      </Button>
+                    </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Adicionar Participante ao Evento</DialogTitle>
@@ -679,8 +705,9 @@ export default function EventDetail() {
                       </Button>
                     </div>
                   </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                  </Dialog>
+                )}
             </div>
           </CardHeader>
           <CardContent>
@@ -709,13 +736,17 @@ export default function EventDetail() {
                         {participant.instrument || "-"}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeParticipantFromEvent(participant.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
+                        {userRole === 'superuser' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeParticipantFromEvent(participant.id)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
