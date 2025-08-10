@@ -1,370 +1,296 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { Navigation } from "@/components/Navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { Music, Calendar, Users, TrendingUp, Clock, MessageSquare, Eye } from "lucide-react";
-
-interface DashboardStats {
-  totalEvents: number;
-  totalSongs: number;
-  totalBands: number;
-  totalComments: number;
-}
-
-interface UpcomingEvent {
-  id: string;
-  name: string;
-  event_date: string;
-  bands: { name: string };
-}
-
-interface RecentEvent {
-  id: string;
-  name: string;
-  event_date: string;
-  bands: { name: string };
-}
-
-interface PopularSong {
-  id: string;
-  name: string;
-  key: string | null;
-  play_count: number;
-}
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Calendar, Music, Users, TrendingUp, Clock, Star, BarChart3, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { StatsCard } from '@/components/StatsCard';
+import { Navigation } from '@/components/Navigation';
 
 const Index = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>({
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [stats, setStats] = useState({
+    totalBands: 0,
     totalEvents: 0,
     totalSongs: 0,
-    totalBands: 0,
-    totalComments: 0,
+    thisMonthEvents: 0,
+    topSongs: [] as any[]
   });
-  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
-  const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
-  const [popularSongs, setPopularSongs] = useState<PopularSong[]>([]);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      fetchDashboardData();
+      fetchUserProfile();
     }
   }, [user]);
 
-  const fetchDashboardData = async () => {
-    try {
-      await Promise.all([
-        fetchStats(),
-        fetchUpcomingEvents(),
-        fetchRecentEvents(),
-        fetchPopularSongs(),
-      ]);
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setDashboardLoading(false);
+  useEffect(() => {
+    if (userProfile) {
+      fetchStats();
     }
+  }, [userProfile]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('*, bands:band_id(name)')
+      .eq('user_id', user.id)
+      .single();
+    
+    setUserProfile(data);
   };
 
   const fetchStats = async () => {
+    if (!userProfile) return;
+    
     try {
-      const [eventsRes, songsRes, bandsRes, commentsRes] = await Promise.all([
-        supabase.from("events").select("id", { count: "exact", head: true }),
-        supabase.from("songs").select("id", { count: "exact", head: true }),
-        supabase.from("bands").select("id", { count: "exact", head: true }),
-        supabase.from("comments").select("id", { count: "exact", head: true }),
-      ]);
+      if (userProfile.role === 'superuser') {
+        // Admin sees all stats
+        const [bandsResult, eventsResult, songsResult, thisMonthResult] = await Promise.all([
+          supabase.from('bands').select('*', { count: 'exact', head: true }),
+          supabase.from('events').select('*', { count: 'exact', head: true }),
+          supabase.from('songs').select('*', { count: 'exact', head: true }),
+          supabase.from('events').select('*', { count: 'exact', head: true })
+            .gte('event_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
+        ]);
 
-      setStats({
-        totalEvents: eventsRes.count || 0,
-        totalSongs: songsRes.count || 0,
-        totalBands: bandsRes.count || 0,
-        totalComments: commentsRes.count || 0,
-      });
+        setStats({
+          totalBands: bandsResult.count || 0,
+          totalEvents: eventsResult.count || 0,
+          totalSongs: songsResult.count || 0,
+          thisMonthEvents: thisMonthResult.count || 0,
+          topSongs: []
+        });
+      } else {
+        // Regular user sees current month's top songs
+        const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+
+        const { data: topSongsData } = await supabase
+          .from('event_songs')
+          .select(`
+            song_id,
+            songs:song_id(name, key),
+            events:event_id(event_date)
+          `)
+          .gte('events.event_date', startOfMonth.toISOString().split('T')[0])
+          .lte('events.event_date', endOfMonth.toISOString().split('T')[0]);
+
+        // Count song occurrences
+        const songCounts = (topSongsData || []).reduce((acc: any, item: any) => {
+          const songId = item.song_id;
+          if (!acc[songId]) {
+            acc[songId] = {
+              song: item.songs,
+              count: 0
+            };
+          }
+          acc[songId].count++;
+          return acc;
+        }, {});
+
+        const topSongs = Object.values(songCounts)
+          .sort((a: any, b: any) => b.count - a.count)
+          .slice(0, 5);
+
+        setStats({
+          totalBands: 0,
+          totalEvents: 0,
+          totalSongs: 0,
+          thisMonthEvents: 0,
+          topSongs
+        });
+      }
     } catch (error) {
-      console.error("Error fetching stats:", error);
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchUpcomingEvents = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase
-        .from("events")
-        .select(`
-          id,
-          name,
-          event_date,
-          bands(name)
-        `)
-        .gte("event_date", today)
-        .order("event_date")
-        .limit(5);
-
-      if (error) throw error;
-      setUpcomingEvents(data || []);
-    } catch (error) {
-      console.error("Error fetching upcoming events:", error);
-    }
-  };
-
-  const fetchRecentEvents = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase
-        .from("events")
-        .select(`
-          id,
-          name,
-          event_date,
-          bands(name)
-        `)
-        .lt("event_date", today)
-        .order("event_date", { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-      setRecentEvents(data || []);
-    } catch (error) {
-      console.error("Error fetching recent events:", error);
-    }
-  };
-
-  const fetchPopularSongs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("songs")
-        .select(`
-          id,
-          name,
-          key,
-          event_songs(id)
-        `)
-        .limit(10);
-
-      if (error) throw error;
-      
-      const songsWithCount = (data || []).map(song => ({
-        ...song,
-        play_count: song.event_songs?.length || 0,
-      }))
-      .sort((a, b) => b.play_count - a.play_count)
-      .slice(0, 5);
-
-      setPopularSongs(songsWithCount);
-    } catch (error) {
-      console.error("Error fetching popular songs:", error);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <Navigation />
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="text-center">
+            <div className="text-lg font-medium">Carregando...</div>
+            <div className="text-sm text-muted-foreground">Preparando seu dashboard</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5">
       <Navigation />
-      <div className="container mx-auto p-6 space-y-8">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-gradient mb-2">Dashboard</h1>
-          <p className="text-muted-foreground text-lg">
-            Bem-vindo ao Band Manager, {user?.email}
+      <div className="max-w-7xl mx-auto space-y-8 p-6">
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-3 rounded-full bg-primary/10 animate-pulse-glow">
+              <Music className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold text-gradient font-poppins">
+              {userProfile?.role === 'superuser' ? 'Painel Administrativo' : 'Band Manager'}
+            </h1>
+          </div>
+          <p className="text-lg text-muted-foreground">
+            {userProfile?.role === 'superuser' 
+              ? 'Gerencie todas as bandas e usuários do sistema'
+              : userProfile?.bands?.name 
+                ? `Bem-vindo à ${userProfile.bands.name}`
+                : 'Sistema completo para gerenciamento de bandas e eventos musicais'
+            }
           </p>
+          {userProfile?.role === 'superuser' && (
+            <div className="flex justify-center gap-4">
+              <Link to="/user-management">
+                <Button className="btn-gradient">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Gerenciar Usuários
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up">{/* Stats Cards */}
-          <Card className="card-modern hover-lift">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Eventos</CardTitle>
-              <Calendar className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">{stats.totalEvents}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="card-modern hover-lift">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Músicas Cadastradas</CardTitle>
-              <Music className="h-4 w-4 text-accent" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-accent">{stats.totalSongs}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="card-modern hover-lift">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Bandas Ativas</CardTitle>
-              <Users className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-success">{stats.totalBands}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="card-modern hover-lift">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Comentários</CardTitle>
-              <MessageSquare className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-warning">{stats.totalComments}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-scale-in">
-          {/* Upcoming Events */}
-          <Card className="card-glass hover-glow">{/* Upcoming Events */}
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Próximos Eventos
-              </CardTitle>
-              <CardDescription>
-                Eventos programados para os próximos dias
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {upcomingEvents.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">
-                  Nenhum evento próximo
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {upcomingEvents.map((event) => (
-                    <div key={event.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div>
-                        <h4 className="font-medium">{event.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {event.bands.name} • {new Date(event.event_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Link to={`/events/${event.id}`}>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="card-glass hover-glow">{/* Recent Events */}
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Eventos Recentes
-              </CardTitle>
-              <CardDescription>
-                Últimos eventos realizados
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentEvents.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">
-                  Nenhum evento recente
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {recentEvents.map((event) => (
-                    <div key={event.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div>
-                        <h4 className="font-medium">{event.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {event.bands.name} • {new Date(event.event_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Link to={`/events/${event.id}`}>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Popular Songs */}
-          <Card className="card-glass hover-glow">{/* Popular Songs */}
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Músicas Mais Tocadas
-              </CardTitle>
-              <CardDescription>
-                Ranking das músicas mais populares
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {popularSongs.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">
-                  Nenhuma música tocada ainda
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {popularSongs.map((song, index) => (
-                    <div key={song.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline">#{index + 1}</Badge>
-                        <div>
-                          <h4 className="font-medium">{song.name}</h4>
-                          {song.key && (
-                            <p className="text-sm text-muted-foreground">Tom: {song.key}</p>
-                          )}
+        {/* Statistics Cards */}
+        {userProfile?.role === 'superuser' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatsCard
+              title="Total de Bandas"
+              value={stats.totalBands}
+              description="Bandas cadastradas no sistema"
+              icon={Users}
+            />
+            <StatsCard
+              title="Total de Eventos"
+              value={stats.totalEvents}
+              description="Eventos já realizados"
+              icon={Calendar}
+            />
+            <StatsCard
+              title="Total de Músicas"
+              value={stats.totalSongs}
+              description="Músicas no repertório"
+              icon={Music}
+            />
+            <StatsCard
+              title="Eventos Este Mês"
+              value={stats.thisMonthEvents}
+              description={`Eventos realizados em ${new Date().toLocaleString('pt-BR', { month: 'long' })}`}
+              icon={TrendingUp}
+            />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <Card className="card-glass">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Top Músicas do Mês - {new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                </CardTitle>
+                <CardDescription>
+                  Músicas mais tocadas este mês
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {stats.topSongs.length > 0 ? (
+                  <div className="space-y-4">
+                    {stats.topSongs.map((item: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium">{item.song.name}</p>
+                            {item.song.key && (
+                              <p className="text-sm text-muted-foreground">Tom: {item.song.key}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-primary">{item.count}x</p>
+                          <p className="text-xs text-muted-foreground">tocadas</p>
                         </div>
                       </div>
-                      <Badge>
-                        {song.play_count} {song.play_count === 1 ? 'vez' : 'vezes'}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhuma música tocada este mês</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-          <Card className="card-modern">{/* Quick Actions */}
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
-              <CardDescription>
-                Acesso rápido às principais funcionalidades
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Link to="/events">
-                <Button variant="outline" className="w-full justify-start hover-lift">{/* My Profile */}
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Gerenciar Eventos
-                </Button>
-              </Link>
-              <Link to="/songs">
-              <Button variant="outline" className="w-full justify-start hover-lift">{/* Manage Events */}
-                  <Music className="h-4 w-4 mr-2" />
-                  Ver Músicas
-                </Button>
-              </Link>
-              <Link to="/bands">
-                <Button variant="outline" className="w-full justify-start hover-lift">{/* View Songs */}
-                  <Users className="h-4 w-4 mr-2" />
-                  Gerenciar Bandas
-                </Button>
-              </Link>
-              <Link to="/profile">
-                <Button variant="outline" className="w-full justify-start hover-lift">{/* Manage Bands */}
-                  <Users className="h-4 w-4 mr-2" />
-                  Meu Perfil
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Link to="/bands">
+            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group">
+              <CardContent className="flex flex-col items-center p-6 text-center">
+                <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-4">
+                  <Users className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Bandas</h3>
+                <p className="text-sm text-muted-foreground">
+                  {userProfile?.role === 'superuser' ? 'Gerencie todas as bandas' : 'Visualize bandas'}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/events">
+            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group">
+              <CardContent className="flex flex-col items-center p-6 text-center">
+                <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-4">
+                  <Calendar className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Eventos</h3>
+                <p className="text-sm text-muted-foreground">
+                  {userProfile?.role === 'superuser' ? 'Organize e gerencie eventos' : 'Visualize eventos'}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/songs">
+            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group">
+              <CardContent className="flex flex-col items-center p-6 text-center">
+                <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-4">
+                  <Music className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Músicas</h3>
+                <p className="text-sm text-muted-foreground">
+                  {userProfile?.role === 'superuser' ? 'Gerencie repertório musical' : 'Visualize repertório'}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/profile">
+            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group">
+              <CardContent className="flex flex-col items-center p-6 text-center">
+                <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-4">
+                  <Star className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Perfil</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure sua conta e preferências
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
     </div>

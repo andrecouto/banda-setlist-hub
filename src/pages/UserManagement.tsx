@@ -1,0 +1,360 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { Navigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, Users, Plus } from 'lucide-react';
+
+interface Profile {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  role: 'superuser' | 'band_member';
+  band_id: string | null;
+  created_at: string;
+}
+
+interface Band {
+  id: string;
+  name: string;
+}
+
+const UserManagement = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [bands, setBands] = useState<Band[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Check if user is superuser
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      checkUserRole();
+      fetchProfiles();
+      fetchBands();
+    }
+  }, [user]);
+
+  const checkUserRole = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    setUserRole(data?.role || null);
+  };
+
+  const fetchProfiles = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        user_id,
+        name,
+        email,
+        role,
+        band_id,
+        created_at,
+        bands:band_id(name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar perfis",
+        description: error.message,
+      });
+    } else {
+      setProfiles(data || []);
+    }
+    setIsLoading(false);
+  };
+
+  const fetchBands = async () => {
+    const { data, error } = await supabase
+      .from('bands')
+      .select('id, name')
+      .order('name');
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar bandas",
+        description: error.message,
+      });
+    } else {
+      setBands(data || []);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsCreating(true);
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const role = formData.get('role') as 'superuser' | 'band_member';
+    const bandId = formData.get('band_id') as string;
+
+    try {
+      // Create user in auth.users
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        user_metadata: { name },
+        email_confirm: true
+      });
+
+      if (authError) throw authError;
+
+      // Create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: authData.user.id,
+          name,
+          email,
+          role,
+          band_id: bandId || null
+        });
+
+      if (profileError) throw profileError;
+
+      toast({
+        title: "Usuário criado com sucesso!",
+        description: `${name} foi adicionado ao sistema.`,
+      });
+
+      fetchProfiles();
+      (e.target as HTMLFormElement).reset();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao criar usuário",
+        description: error.message,
+      });
+    }
+
+    setIsCreating(false);
+  };
+
+  const handleDeleteProfile = async (profileId: string, userId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+
+    try {
+      // Delete from auth.users (will cascade to profiles)
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      if (authError) throw authError;
+
+      toast({
+        title: "Usuário excluído com sucesso!",
+      });
+
+      fetchProfiles();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir usuário",
+        description: error.message,
+      });
+    }
+  };
+
+  // Redirect if not superuser
+  if (userRole && userRole !== 'superuser') {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!userRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg font-medium">Carregando...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-3 rounded-full bg-primary/10">
+              <Users className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold text-gradient">Gerenciamento de Usuários</h1>
+          </div>
+          <p className="text-lg text-muted-foreground">
+            Crie e gerencie usuários do sistema
+          </p>
+        </div>
+
+        {/* Create User Form */}
+        <Card className="card-glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Criar Novo Usuário
+            </CardTitle>
+            <CardDescription>
+              Preencha os dados para criar um novo usuário
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="Nome completo"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Perfil</Label>
+                <Select name="role" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o perfil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="band_member">Usuário Comum</SelectItem>
+                    <SelectItem value="superuser">Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="band_id">Banda (Opcional)</Label>
+                <Select name="band_id">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma banda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bands.map((band) => (
+                      <SelectItem key={band.id} value={band.id}>
+                        {band.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button type="submit" className="w-full btn-gradient" disabled={isCreating}>
+                  {isCreating ? "Criando..." : "Criar Usuário"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Users Table */}
+        <Card className="card-glass">
+          <CardHeader>
+            <CardTitle>Usuários Cadastrados</CardTitle>
+            <CardDescription>
+              Lista de todos os usuários do sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="text-lg font-medium">Carregando usuários...</div>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Perfil</TableHead>
+                    <TableHead>Banda</TableHead>
+                    <TableHead>Criado em</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {profiles.map((profile) => (
+                    <TableRow key={profile.id}>
+                      <TableCell className="font-medium">{profile.name}</TableCell>
+                      <TableCell>{profile.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={profile.role === 'superuser' ? 'default' : 'secondary'}>
+                          {profile.role === 'superuser' ? 'Administrador' : 'Usuário Comum'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {profile.band_id ? (
+                          <span className="text-sm text-muted-foreground">
+                            {(profile as any).bands?.name || 'Banda não encontrada'}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Sem banda</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(profile.created_at).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell>
+                        {profile.email !== 'administrador' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteProfile(profile.id, profile.user_id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default UserManagement;
