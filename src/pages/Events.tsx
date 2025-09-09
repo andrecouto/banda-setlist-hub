@@ -71,6 +71,7 @@ export default function Events() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [showUpcoming, setShowUpcoming] = useState(false);
   const [userRole, setUserRole] = useState<string>('band_member');
   const [eventSongs, setEventSongs] = useState<EventSong[]>([]);
   const [formData, setFormData] = useState({
@@ -643,14 +644,23 @@ export default function Events() {
             </CardContent>
           </Card>
 
-          <Tabs value="upcoming" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upcoming">Próximos Eventos ({upcomingEvents.length})</TabsTrigger>
-              <TabsTrigger value="past">Eventos Passados ({pastEvents.length})</TabsTrigger>
-            </TabsList>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">
+                {showUpcoming ? `Próximos Eventos (${upcomingEvents.length})` : `Eventos Passados (${pastEvents.length})`}
+              </h2>
+              <Button
+                variant="outline"
+                onClick={() => setShowUpcoming(!showUpcoming)}
+                className="flex items-center gap-2"
+              >
+                <Calendar className="h-4 w-4" />
+                {showUpcoming ? 'Ver Eventos Passados' : 'Ver Próximos Eventos'}
+              </Button>
+            </div>
             
-            <TabsContent value="upcoming" className="space-y-4">
-              {upcomingEvents.length === 0 ? (
+            {showUpcoming ? (
+              upcomingEvents.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-8">
                     <p className="text-muted-foreground">Nenhum evento próximo encontrado</p>
@@ -668,11 +678,9 @@ export default function Events() {
                     />
                   ))}
                 </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="past" className="space-y-4">
-              {pastEvents.length === 0 ? (
+              )
+            ) : (
+              pastEvents.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-8">
                     <p className="text-muted-foreground">Nenhum evento passado encontrado</p>
@@ -690,9 +698,9 @@ export default function Events() {
                     />
                   ))}
                 </div>
-              )}
-            </TabsContent>
-          </Tabs>
+              )
+            )}
+          </div>
         </div>
       </div>
     </div>
