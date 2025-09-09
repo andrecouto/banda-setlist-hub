@@ -66,8 +66,8 @@ export default function Events() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBand, setSelectedBand] = useState("");
-  const [selectedSong, setSelectedSong] = useState("");
+  const [selectedBand, setSelectedBand] = useState("all");
+  const [selectedSong, setSelectedSong] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -347,7 +347,7 @@ export default function Events() {
   
   useEffect(() => {
     const filterEventsBySong = async () => {
-      if (!selectedSong) {
+      if (!selectedSong || selectedSong === "all") {
         setEventsWithSongs(filteredEvents);
         return;
       }
@@ -576,39 +576,38 @@ export default function Events() {
                     className="w-full"
                   />
                 </div>
-                <Select value={selectedBand} onValueChange={setSelectedBand}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por banda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as bandas</SelectItem>
-                    <SelectItem value="">Todas as bandas</SelectItem>
-                    {bands.map((band) => (
-                      <SelectItem key={band.id} value={band.id}>
-                        {band.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={selectedSong} onValueChange={setSelectedSong}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por música" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Todas as músicas</SelectItem>
-                    {songs.map((song) => (
-                      <SelectItem key={song.id} value={song.id}>
-                        {song.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Select value={selectedBand} onValueChange={setSelectedBand}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filtrar por banda" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as bandas</SelectItem>
+                      {bands.map((band) => (
+                        <SelectItem key={band.id} value={band.id}>
+                          {band.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedSong} onValueChange={setSelectedSong}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filtrar por música" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as músicas</SelectItem>
+                      {songs.map((song) => (
+                        <SelectItem key={song.id} value={song.id}>
+                          {song.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 <Button 
                   variant="outline" 
                   onClick={() => {
                     setSearchTerm("");
-                    setSelectedBand("");
-                    setSelectedSong("");
+                    setSelectedBand("all");
+                    setSelectedSong("all");
                     setStartDate("");
                     setEndDate("");
                   }}
