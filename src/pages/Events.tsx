@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { EventCard } from "@/components/EventCard";
+import { EventSongManager } from "@/components/EventSongManager";
 import { Plus, Calendar, Users, Music, Search, Filter } from "lucide-react";
 
 interface Event {
@@ -37,6 +38,18 @@ interface Profile {
   name: string;
 }
 
+interface EventSong {
+  id?: string;
+  song_id: string;
+  song_order: number;
+  key_played: string | null;
+  song: {
+    id: string;
+    name: string;
+    key: string | null;
+  };
+}
+
 export default function Events() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -50,6 +63,7 @@ export default function Events() {
   const [selectedBand, setSelectedBand] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [userRole, setUserRole] = useState<string>('band_member');
+  const [eventSongs, setEventSongs] = useState<EventSong[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     event_date: "",
@@ -150,6 +164,8 @@ export default function Events() {
         leader_id: formData.leader_id || null,
       };
 
+      let eventId = editingEvent?.id;
+
       if (editingEvent) {
         const { error } = await supabase
           .from("events")
@@ -157,14 +173,40 @@ export default function Events() {
           .eq("id", editingEvent.id);
 
         if (error) throw error;
+        
+        // Delete existing event songs
+        await supabase
+          .from("event_songs")
+          .delete()
+          .eq("event_id", editingEvent.id);
+        
         toast({ title: "Sucesso", description: "Evento atualizado!" });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("events")
-          .insert(eventData);
+          .insert(eventData)
+          .select()
+          .single();
 
         if (error) throw error;
+        eventId = data.id;
         toast({ title: "Sucesso", description: "Evento criado!" });
+      }
+
+      // Save event songs
+      if (eventSongs.length > 0 && eventId) {
+        const eventSongsData = eventSongs.map(song => ({
+          event_id: eventId,
+          song_id: song.song_id,
+          song_order: song.song_order,
+          key_played: song.key_played,
+        }));
+
+        const { error: songsError } = await supabase
+          .from("event_songs")
+          .insert(eventSongsData);
+
+        if (songsError) throw songsError;
       }
 
       setFormData({
@@ -175,6 +217,7 @@ export default function Events() {
         band_id: "",
         leader_id: "",
       });
+      setEventSongs([]);
       setEditingEvent(null);
       setIsDialogOpen(false);
       fetchEvents();
@@ -188,7 +231,34 @@ export default function Events() {
     }
   };
 
-  const handleEdit = (event: Event) => {
+  const fetchEventSongs = async (eventId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("event_songs")
+        .select(`
+          *,
+          songs(id, name, key)
+        `)
+        .eq("event_id", eventId)
+        .order("song_order");
+
+      if (error) throw error;
+      
+      const mappedSongs = (data || []).map(item => ({
+        id: item.id,
+        song_id: item.song_id,
+        song_order: item.song_order,
+        key_played: item.key_played,
+        song: item.songs as any
+      }));
+      
+      setEventSongs(mappedSongs);
+    } catch (error) {
+      console.error("Error fetching event songs:", error);
+    }
+  };
+
+  const handleEdit = async (event: Event) => {
     setEditingEvent(event);
     setFormData({
       name: event.name,
@@ -198,6 +268,7 @@ export default function Events() {
       band_id: event.band_id,
       leader_id: event.leader_id || "",
     });
+    await fetchEventSongs(event.id);
     setIsDialogOpen(true);
   };
 
@@ -230,13 +301,14 @@ export default function Events() {
       band_id: "",
       leader_id: "",
     });
+    setEventSongs([]);
     setIsDialogOpen(true);
   };
 
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.bands.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesBand = selectedBand === "" || event.band_id === selectedBand;
+    const matchesBand = selectedBand === "all" || selectedBand === "" || event.band_id === selectedBand;
     return matchesSearch && matchesBand;
   });
 
@@ -299,7 +371,7 @@ export default function Events() {
                   Novo Evento
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingEvent ? "Editar Evento" : "Novo Evento"}
@@ -398,6 +470,12 @@ export default function Events() {
                     placeholder="Observações sobre o evento"
                   />
                 </div>
+                
+                <EventSongManager
+                  eventId={editingEvent?.id}
+                  eventSongs={eventSongs}
+                  onSongsChange={setEventSongs}
+                />
                 <div className="flex gap-2">
                   <Button type="submit" className="flex-1">
                     {editingEvent ? "Atualizar" : "Criar"}
@@ -440,7 +518,7 @@ export default function Events() {
                     <SelectValue placeholder="Filtrar por banda" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as bandas</SelectItem>
+                    <SelectItem value="all">Todas as bandas</SelectItem>
                     {bands.map((band) => (
                       <SelectItem key={band.id} value={band.id}>
                         {band.name}
