@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { EventCard } from "@/components/EventCard";
 import { EventSongManager } from "@/components/EventSongManager";
-import { Plus, Calendar, Users, Music, Search, Filter } from "lucide-react";
+import { Plus, Calendar, Users, Music, Search, Filter, X } from "lucide-react";
 
 interface Event {
   id: string;
@@ -38,6 +38,11 @@ interface Profile {
   name: string;
 }
 
+interface Song {
+  id: string;
+  name: string;
+}
+
 interface EventSong {
   id?: string;
   song_id: string;
@@ -56,11 +61,15 @@ export default function Events() {
   const [events, setEvents] = useState<Event[]>([]);
   const [bands, setBands] = useState<Band[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBand, setSelectedBand] = useState("");
+  const [selectedSong, setSelectedSong] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [userRole, setUserRole] = useState<string>('band_member');
   const [eventSongs, setEventSongs] = useState<EventSong[]>([]);
@@ -77,6 +86,7 @@ export default function Events() {
     fetchEvents();
     fetchBands();
     fetchProfiles();
+    fetchSongs();
     fetchUserRole();
   }, []);
 
@@ -147,6 +157,20 @@ export default function Events() {
       setProfiles(data || []);
     } catch (error) {
       console.error("Error fetching profiles:", error);
+    }
+  };
+
+  const fetchSongs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("songs")
+        .select("id, name")
+        .order("name");
+
+      if (error) throw error;
+      setSongs(data || []);
+    } catch (error) {
+      console.error("Error fetching songs:", error);
     }
   };
 
@@ -309,11 +333,50 @@ export default function Events() {
     const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.bands.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesBand = selectedBand === "all" || selectedBand === "" || event.band_id === selectedBand;
-    return matchesSearch && matchesBand;
+    
+    // Date filters
+    const eventDate = new Date(event.event_date);
+    const matchesStartDate = !startDate || eventDate >= new Date(startDate);
+    const matchesEndDate = !endDate || eventDate <= new Date(endDate);
+    
+    return matchesSearch && matchesBand && matchesStartDate && matchesEndDate;
   });
 
-  const upcomingEvents = filteredEvents.filter(event => new Date(event.event_date) > new Date());
-  const pastEvents = filteredEvents.filter(event => new Date(event.event_date) <= new Date());
+  // Filter by song if selected
+  const [eventsWithSongs, setEventsWithSongs] = useState<Event[]>([]);
+  
+  useEffect(() => {
+    const filterEventsBySong = async () => {
+      if (!selectedSong) {
+        setEventsWithSongs(filteredEvents);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from("event_songs")
+          .select("event_id")
+          .eq("song_id", selectedSong);
+          
+        if (error) throw error;
+        
+        const eventIdsWithSong = new Set(data.map(item => item.event_id));
+        const eventsWithSelectedSong = filteredEvents.filter(event => 
+          eventIdsWithSong.has(event.id)
+        );
+        
+        setEventsWithSongs(eventsWithSelectedSong);
+      } catch (error) {
+        console.error("Error filtering events by song:", error);
+        setEventsWithSongs(filteredEvents);
+      }
+    };
+    
+    filterEventsBySong();
+  }, [selectedSong, filteredEvents]);
+
+  const upcomingEvents = eventsWithSongs.filter(event => new Date(event.event_date) > new Date());
+  const pastEvents = eventsWithSongs.filter(event => new Date(event.event_date) <= new Date());
 
   const getEventStats = () => {
     return {
@@ -504,8 +567,8 @@ export default function Events() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-4">
-                <div className="flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="lg:col-span-2">
                   <Input
                     placeholder="Buscar eventos..."
                     value={searchTerm}
@@ -514,11 +577,12 @@ export default function Events() {
                   />
                 </div>
                 <Select value={selectedBand} onValueChange={setSelectedBand}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger>
                     <SelectValue placeholder="Filtrar por banda" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas as bandas</SelectItem>
+                    <SelectItem value="">Todas as bandas</SelectItem>
                     {bands.map((band) => (
                       <SelectItem key={band.id} value={band.id}>
                         {band.name}
@@ -526,6 +590,56 @@ export default function Events() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select value={selectedSong} onValueChange={setSelectedSong}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por música" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas as músicas</SelectItem>
+                    {songs.map((song) => (
+                      <SelectItem key={song.id} value={song.id}>
+                        {song.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedBand("");
+                    setSelectedSong("");
+                    setStartDate("");
+                    setEndDate("");
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Limpar
+                </Button>
+              </div>
+              
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="start-date" className="text-sm font-medium">Data inicial</Label>
+                  <Input
+                    id="start-date"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    placeholder="Data inicial"
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label htmlFor="end-date" className="text-sm font-medium">Data final</Label>
+                  <Input
+                    id="end-date"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    placeholder="Data final"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
