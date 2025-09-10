@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Users, Plus } from 'lucide-react';
+import { Trash2, Users, Plus, UserCheck } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -115,32 +115,44 @@ const UserManagement = () => {
     const bandId = formData.get('band_id') as string;
 
     try {
-      // Create user in auth.users
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Create user using the regular signup method
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        user_metadata: { name },
-        email_confirm: true
+        options: {
+          data: {
+            name: name
+          },
+          emailRedirectTo: `${window.location.origin}/`
+        }
       });
 
       if (authError) throw authError;
 
-      // Create profile
-      const { error: profileError } = await supabase
+      if (!authData.user) {
+        throw new Error('Falha ao criar usuário');
+      }
+
+      // Wait a bit for the profile to be created by the trigger
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Update the profile with the correct role and band
+      const { error: updateError } = await supabase
         .from('profiles')
-        .insert({
-          user_id: authData.user.id,
-          name,
-          email,
+        .update({
           role,
           band_id: bandId || null
-        });
+        })
+        .eq('user_id', authData.user.id);
 
-      if (profileError) throw profileError;
+      if (updateError) {
+        console.warn('Erro ao atualizar perfil:', updateError);
+        // Don't throw here as the user was created successfully
+      }
 
       toast({
         title: "Usuário criado com sucesso!",
-        description: `${name} foi adicionado ao sistema.`,
+        description: `${name} foi adicionado ao sistema. ${authData.user.email_confirmed_at ? '' : 'Um email de confirmação foi enviado.'}`,
       });
 
       fetchProfiles();
@@ -160,19 +172,51 @@ const UserManagement = () => {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
 
     try {
-      // Delete from auth.users (will cascade to profiles)
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      if (authError) throw authError;
+      // Instead of deleting the user from auth (which requires admin), 
+      // we'll just delete the profile and let the user account remain
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', profileId);
+
+      if (error) throw error;
 
       toast({
-        title: "Usuário excluído com sucesso!",
+        title: "Perfil excluído com sucesso!",
+        description: "O perfil foi removido do sistema, mas a conta de usuário permanece ativa.",
       });
 
       fetchProfiles();
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Erro ao excluir usuário",
+        title: "Erro ao excluir perfil",
+        description: error.message,
+      });
+    }
+  };
+
+  const handleUpdateRole = async (profileId: string, currentRole: string) => {
+    const newRole = currentRole === 'superuser' ? 'band_member' : 'superuser';
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', profileId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Role atualizado!",
+        description: `Usuário agora é ${newRole === 'superuser' ? 'Administrador' : 'Usuário Comum'}`,
+      });
+
+      fetchProfiles();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar role",
         description: error.message,
       });
     }
@@ -216,7 +260,7 @@ const UserManagement = () => {
               Criar Novo Usuário
             </CardTitle>
             <CardDescription>
-              Preencha os dados para criar um novo usuário
+              Preencha os dados para criar um novo usuário. O usuário receberá um email de confirmação.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -334,16 +378,30 @@ const UserManagement = () => {
                         {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell>
-                        {profile.email !== 'administrador' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteProfile(profile.id, profile.user_id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <div className="flex gap-2">
+                          {profile.email !== 'administrador' && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUpdateRole(profile.id, profile.role)}
+                                className="text-blue-600 hover:text-blue-700"
+                                title={`Alterar para ${profile.role === 'superuser' ? 'Usuário Comum' : 'Administrador'}`}
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteProfile(profile.id, profile.user_id)}
+                                className="text-destructive hover:text-destructive"
+                                title="Excluir perfil"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
