@@ -10,7 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Users, Plus, UserCheck } from 'lucide-react';
+import { Trash2, Users, Plus, UserCheck, Home } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface Profile {
   id: string;
@@ -240,6 +241,20 @@ const UserManagement = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Botão Home no canto superior esquerdo */}
+        <div className="flex justify-start">
+          <Link to="/">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 hover-lift hover:bg-primary/10"
+            >
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">Home</span>
+            </Button>
+          </Link>
+        </div>
+        
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3">
             <div className="p-3 rounded-full bg-primary/10">
