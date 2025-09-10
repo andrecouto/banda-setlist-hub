@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Music, Calendar, Users, LogOut, User } from "lucide-react";
+import { Music, Calendar, Users, LogOut, User, Home } from "lucide-react";
 
 export function Navigation() {
   const { signOut, user } = useAuth();
@@ -22,9 +22,25 @@ export function Navigation() {
     <nav className="bg-card/80 backdrop-blur-sm border-b border-border/50 p-4 sticky top-0 z-50">
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-6">
+          {/* Botão Home no canto superior esquerdo */}
+          <Link to="/">
+            <Button
+              variant={location.pathname === "/" ? "default" : "outline"}
+              size="sm"
+              className={`flex items-center gap-2 hover-lift ${
+                location.pathname === "/"
+                  ? "btn-gradient shadow-glow"
+                  : "hover:bg-primary/10"
+              }`}
+            >
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">Home</span>
+            </Button>
+          </Link>
+          
           <h1 className="text-xl font-bold text-gradient font-poppins">Band Manager</h1>
           <div className="flex space-x-2">
-            {navItems.map(({ path, label, icon: Icon }) => (
+            {navItems.filter(item => item.path !== "/").map(({ path, label, icon: Icon }) => (
               <Link key={path} to={path}>
                 <Button
                   variant={location.pathname === path ? "default" : "ghost"}
