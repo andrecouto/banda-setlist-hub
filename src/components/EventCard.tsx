@@ -13,6 +13,7 @@ interface EventCardProps {
     youtube_link: string | null;
     bands: { name: string };
     profiles: { name: string } | null;
+    songs?: { name: string; key_played: string | null }[];
   };
   onEdit?: (event: any) => void;
   onDelete?: (id: string) => void;
@@ -99,6 +100,35 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
             {event.notes}
           </p>
         )}
+        
+        {event.songs && event.songs.length > 0 && (
+          <div className="mb-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Music className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Músicas tocadas ({event.songs.length})</span>
+            </div>
+            <div className="grid grid-cols-1 gap-1">
+              {event.songs.slice(0, 3).map((song, index) => (
+                <div key={index} className="flex justify-between items-center text-xs bg-muted/50 rounded p-2">
+                  <span className="text-muted-foreground">
+                    {index + 1}. {song.name}
+                  </span>
+                  {song.key_played && (
+                    <Badge variant="outline" className="text-xs py-0 px-1">
+                      {song.key_played}
+                    </Badge>
+                  )}
+                </div>
+              ))}
+              {event.songs.length > 3 && (
+                <div className="text-xs text-muted-foreground text-center py-1">
+                  +{event.songs.length - 3} músicas...
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center">
           <div className="text-xs text-muted-foreground">
             {isUpcoming 

@@ -26,6 +26,7 @@ interface Event {
   leader_id: string | null;
   bands: { name: string };
   profiles: { name: string } | null;
+  songs?: { name: string; key_played: string | null }[];
 }
 
 interface Band {
@@ -115,12 +116,29 @@ export default function Events() {
         .select(`
           *,
           bands(name),
-          profiles(name)
+          profiles(name),
+          event_songs(
+            song_order,
+            key_played,
+            songs(name)
+          )
         `)
         .order("event_date", { ascending: false });
 
       if (error) throw error;
-      setEvents(data || []);
+      
+      // Transform the data to include songs in a more convenient format
+      const eventsWithSongs = (data || []).map(event => ({
+        ...event,
+        songs: event.event_songs
+          ?.sort((a, b) => a.song_order - b.song_order)
+          .map(es => ({
+            name: es.songs.name,
+            key_played: es.key_played
+          })) || []
+      }));
+      
+      setEvents(eventsWithSongs);
     } catch (error) {
       console.error("Error fetching events:", error);
       toast({
