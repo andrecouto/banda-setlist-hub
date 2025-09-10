@@ -80,7 +80,7 @@ export default function Events() {
     notes: "",
     youtube_link: "",
     band_id: "",
-    leader_id: "",
+    leader_id: "none",
   });
 
   useEffect(() => {
@@ -186,7 +186,7 @@ export default function Events() {
         notes: formData.notes || null,
         youtube_link: formData.youtube_link || null,
         band_id: formData.band_id,
-        leader_id: formData.leader_id || null,
+        leader_id: formData.leader_id === "none" ? null : formData.leader_id,
       };
 
       let eventId = editingEvent?.id;
@@ -240,7 +240,7 @@ export default function Events() {
         notes: "",
         youtube_link: "",
         band_id: "",
-        leader_id: "",
+        leader_id: "none",
       });
       setEventSongs([]);
       setEditingEvent(null);
@@ -291,7 +291,7 @@ export default function Events() {
       notes: event.notes || "",
       youtube_link: event.youtube_link || "",
       band_id: event.band_id,
-      leader_id: event.leader_id || "",
+      leader_id: event.leader_id || "none",
     });
     await fetchEventSongs(event.id);
     setIsDialogOpen(true);
@@ -324,7 +324,7 @@ export default function Events() {
       notes: "",
       youtube_link: "",
       band_id: "",
-      leader_id: "",
+      leader_id: "none",
     });
     setEventSongs([]);
     setIsDialogOpen(true);
@@ -504,6 +504,7 @@ export default function Events() {
                       <SelectValue placeholder="Selecione um líder" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Sem líder específico</SelectItem>
                       {profiles.map((profile) => (
                         <SelectItem key={profile.id} value={profile.id}>
                           {profile.name}
