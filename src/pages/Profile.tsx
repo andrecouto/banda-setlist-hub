@@ -38,7 +38,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
-  const [selectedBandId, setSelectedBandId] = useState("");
+  const [selectedBandId, setSelectedBandId] = useState("none");
 
   useEffect(() => {
     if (user) {
@@ -62,7 +62,7 @@ export default function Profile() {
       
       setProfile(data);
       setName(data.name);
-      setSelectedBandId(data.band_id || "");
+      setSelectedBandId(data.band_id || "none");
     } catch (error) {
       console.error("Error fetching profile:", error);
       toast({
@@ -98,7 +98,7 @@ export default function Profile() {
         .from("profiles")
         .update({
           name: name.trim(),
-          band_id: selectedBandId || null,
+          band_id: selectedBandId === "none" ? null : selectedBandId,
         })
         .eq("id", profile.id);
 
@@ -196,7 +196,7 @@ export default function Profile() {
                       <SelectValue placeholder="Selecione uma banda" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma banda</SelectItem>
+                      <SelectItem value="none">Nenhuma banda</SelectItem>
                       {availableBands.map((band) => (
                         <SelectItem key={band.id} value={band.id}>
                           {band.name}
