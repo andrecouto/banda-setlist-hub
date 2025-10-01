@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Music, Calendar, Users, LogOut, User, Home } from "lucide-react";
 
 export function Navigation() {
@@ -62,6 +63,7 @@ export function Navigation() {
           <span className="text-sm text-muted-foreground hidden md:inline">
             {user?.email}
           </span>
+          <ThemeToggle />
           <Link to="/profile">
             <Button
               variant="outline"
