@@ -198,9 +198,13 @@ export default function Events() {
     if (!formData.name.trim() || !formData.event_date || !formData.band_id) return;
 
     try {
+      // Convert local date to UTC to avoid timezone issues
+      const localDate = new Date(formData.event_date + 'T00:00:00');
+      const utcDate = localDate.toISOString().split('T')[0];
+
       const eventData = {
         name: formData.name,
-        event_date: formData.event_date,
+        event_date: utcDate,
         notes: formData.notes || null,
         youtube_link: formData.youtube_link || null,
         band_id: formData.band_id,

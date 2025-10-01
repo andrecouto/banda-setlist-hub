@@ -64,6 +64,7 @@ interface Comment {
   created_at: string;
   user_id: string;
   profiles: {
+    id: string;
     name: string;
   };
 }
@@ -89,6 +90,9 @@ export default function EventDetail() {
   const [isMedley, setIsMedley] = useState(false);
   const [medleyGroup, setMedleyGroup] = useState("");
   const [userRole, setUserRole] = useState<string>('band_member');
+  const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(null);
+  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -108,12 +112,13 @@ export default function EventDetail() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("role")
+        .select("id, role")
         .eq("user_id", user.id)
         .single();
 
       if (error) throw error;
       setUserRole(data.role);
+      setCurrentUserProfileId(data.id);
     } catch (error) {
       console.error("Error fetching user role:", error);
     }
@@ -213,7 +218,7 @@ export default function EventDetail() {
         .from("comments")
         .select(`
           *,
-          profiles(name)
+          profiles(id, name)
         `)
         .eq("event_id", id)
         .order("created_at", { ascending: false });
@@ -405,6 +410,64 @@ export default function EventDetail() {
       toast({
         title: "Erro",
         description: "Erro ao remover participante",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteComment = async (commentId: string) => {
+    if (!confirm("Tem certeza que deseja excluir este comentário?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .delete()
+        .eq("id", commentId);
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Comentário excluído!" });
+      fetchComments();
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir comentário",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const startEditComment = (comment: Comment) => {
+    setEditingComment(comment.id);
+    setEditCommentContent(comment.content);
+  };
+
+  const cancelEditComment = () => {
+    setEditingComment(null);
+    setEditCommentContent("");
+  };
+
+  const saveEditComment = async (commentId: string) => {
+    if (!editCommentContent.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .update({ content: editCommentContent.trim() })
+        .eq("id", commentId);
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Comentário atualizado!" });
+      setEditingComment(null);
+      setEditCommentContent("");
+      fetchComments();
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar comentário",
         variant: "destructive",
       });
     }
@@ -794,17 +857,67 @@ export default function EventDetail() {
                     <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
                       <div className="flex justify-between items-start mb-2">
                         <span className="font-medium text-sm">{comment.profiles.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(comment.created_at).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(comment.created_at).toLocaleDateString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          {(userRole === 'superuser' || comment.user_id === currentUserProfileId) && (
+                            <div className="flex gap-1">
+                              {editingComment !== comment.id && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => startEditComment(comment)}
+                                  >
+                                    <Plus className="h-3 w-3 rotate-45" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0 text-destructive"
+                                    onClick={() => deleteComment(comment.id)}
+                                  >
+                                    <Trash className="h-3 w-3" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm">{comment.content}</p>
+                      {editingComment === comment.id ? (
+                        <div className="flex gap-2">
+                          <Input
+                            value={editCommentContent}
+                            onChange={(e) => setEditCommentContent(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => saveEditComment(comment.id)}
+                            disabled={!editCommentContent.trim()}
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={cancelEditComment}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-sm">{comment.content}</p>
+                      )}
                     </div>
                   ))}
                 </div>

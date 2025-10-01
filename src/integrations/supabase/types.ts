@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -228,6 +228,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           band_id?: string | null
@@ -238,6 +239,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           band_id?: string | null
@@ -248,6 +250,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: [
           {
@@ -261,23 +264,29 @@ export type Database = {
       }
       songs: {
         Row: {
+          author: string | null
           created_at: string
           id: string
           key: string | null
+          lyrics: string | null
           name: string
           updated_at: string
         }
         Insert: {
+          author?: string | null
           created_at?: string
           id?: string
           key?: string | null
+          lyrics?: string | null
           name: string
           updated_at?: string
         }
         Update: {
+          author?: string | null
           created_at?: string
           id?: string
           key?: string | null
+          lyrics?: string | null
           name?: string
           updated_at?: string
         }
@@ -288,6 +297,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_by_username: {
+        Args: { input_username: string }
+        Returns: {
+          user_email: string
+          user_name: string
+          user_role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]

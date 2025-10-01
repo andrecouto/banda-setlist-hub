@@ -17,9 +17,15 @@ interface Song {
   id: string;
   name: string;
   key: string | null;
+  author: string | null;
+  lyrics: string | null;
   created_at: string;
   usage_count?: number;
   last_played?: string;
+  medleys?: Array<{
+    event_name: string;
+    key_played: string | null;
+  }>;
 }
 
 interface Band {
@@ -36,7 +42,7 @@ export default function Songs() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
-  const [formData, setFormData] = useState({ name: "", key: "" });
+  const [formData, setFormData] = useState({ name: "", key: "", author: "", lyrics: "" });
   const [searchTerm, setSearchTerm] = useState("");
   const [keyFilter, setKeyFilter] = useState<string>("all");
   const [bandFilter, setBandFilter] = useState<string>("all");
@@ -87,23 +93,35 @@ export default function Songs() {
 
   const fetchSongs = async () => {
     try {
-      // Fetch songs with usage statistics from event_songs
+      // Fetch songs with usage statistics and medley information
       const { data: songsData, error: songsError } = await supabase
         .from("songs")
         .select(`
           *,
-          event_songs!song_id(count)
+          event_songs!song_id(
+            key_played,
+            events(name)
+          )
         `)
         .order("name", { ascending: true });
 
       if (songsError) throw songsError;
 
-      // Transform data to include usage counts
-      const songsWithStats = songsData?.map(song => ({
-        ...song,
-        usage_count: song.event_songs?.length || 0,
-        last_played: null // Would need to implement proper last played tracking
-      })) || [];
+      // Transform data to include usage counts and medley info
+      const songsWithStats = songsData?.map(song => {
+        const eventSongs = song.event_songs || [];
+        return {
+          ...song,
+          usage_count: eventSongs.length,
+          medleys: eventSongs
+            .filter(es => es.key_played)
+            .map(es => ({
+              event_name: es.events?.name || 'Evento desconhecido',
+              key_played: es.key_played
+            })),
+          last_played: null
+        };
+      }) || [];
 
       setSongs(songsWithStats);
     } catch (error) {
@@ -155,6 +173,8 @@ export default function Songs() {
           .update({
             name: formData.name,
             key: formData.key || null,
+            author: formData.author || null,
+            lyrics: formData.lyrics || null,
           })
           .eq("id", editingSong.id);
 
@@ -166,13 +186,15 @@ export default function Songs() {
           .insert({
             name: formData.name,
             key: formData.key || null,
+            author: formData.author || null,
+            lyrics: formData.lyrics || null,
           });
 
         if (error) throw error;
         toast({ title: "Sucesso", description: "Música criada!" });
       }
 
-      setFormData({ name: "", key: "" });
+      setFormData({ name: "", key: "", author: "", lyrics: "" });
       setEditingSong(null);
       setIsDialogOpen(false);
       fetchSongs();
@@ -188,7 +210,12 @@ export default function Songs() {
 
   const handleEdit = (song: Song) => {
     setEditingSong(song);
-    setFormData({ name: song.name, key: song.key || "" });
+    setFormData({ 
+      name: song.name, 
+      key: song.key || "",
+      author: song.author || "",
+      lyrics: song.lyrics || ""
+    });
     setIsDialogOpen(true);
   };
 
@@ -213,7 +240,7 @@ export default function Songs() {
 
   const openCreateDialog = () => {
     setEditingSong(null);
-    setFormData({ name: "", key: "" });
+    setFormData({ name: "", key: "", author: "", lyrics: "" });
     setIsDialogOpen(true);
   };
 
@@ -275,6 +302,17 @@ export default function Songs() {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="author">Autor</Label>
+                  <Input
+                    id="author"
+                    value={formData.author}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, author: e.target.value }))
+                    }
+                    placeholder="Nome do autor/compositor (opcional)"
+                  />
+                </div>
+                <div>
                   <Label htmlFor="key">Tom</Label>
                   <Input
                     id="key"
@@ -283,6 +321,17 @@ export default function Songs() {
                       setFormData((prev) => ({ ...prev, key: e.target.value }))
                     }
                     placeholder="Ex: C, Dm, F#"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lyrics">Letra</Label>
+                  <Input
+                    id="lyrics"
+                    value={formData.lyrics}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, lyrics: e.target.value }))
+                    }
+                    placeholder="Letra da música (opcional)"
                   />
                 </div>
                 <div className="flex gap-2">

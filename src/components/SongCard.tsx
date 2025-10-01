@@ -8,9 +8,15 @@ interface SongCardProps {
     id: string;
     name: string;
     key: string | null;
+    author: string | null;
+    lyrics: string | null;
     created_at: string;
     usage_count?: number;
     last_played?: string;
+    medleys?: Array<{
+      event_name: string;
+      key_played: string | null;
+    }>;
   };
   onEdit?: (song: any) => void;
   onDelete?: (id: string) => void;
@@ -62,6 +68,25 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
         </div>
       </CardHeader>
       <CardContent className="pt-0">
+        {song.author && (
+          <p className="text-sm text-muted-foreground mb-2">
+            <span className="font-medium">Autor:</span> {song.author}
+          </p>
+        )}
+        
+        {song.medleys && song.medleys.length > 0 && (
+          <div className="mb-3">
+            <p className="text-sm font-medium mb-1">Tons tocados:</p>
+            <div className="flex flex-wrap gap-1">
+              {song.medleys.map((medley, idx) => (
+                <Badge key={idx} variant="outline" className="text-xs">
+                  {medley.key_played} ({medley.event_name})
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
