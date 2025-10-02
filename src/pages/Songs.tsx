@@ -505,6 +505,9 @@ export default function Songs() {
               <TabsTrigger value="all">Todas ({filteredSongs.length})</TabsTrigger>
               <TabsTrigger value="favorites">Mais Tocadas</TabsTrigger>
               <TabsTrigger value="recent">Recentes</TabsTrigger>
+              <TabsTrigger value="medleys">
+                Medleys ({filteredSongs.filter(s => s.medleys && s.medleys.length > 0).length})
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="all">
@@ -608,6 +611,37 @@ export default function Songs() {
                     />
                   ))}
               </div>
+            </TabsContent>
+            
+            <TabsContent value="medleys">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredSongs
+                  .filter(song => song.medleys && song.medleys.length > 0)
+                  .sort((a, b) => (b.medleys?.length || 0) - (a.medleys?.length || 0))
+                  .map((song) => (
+                    <SongCard
+                      key={song.id}
+                      song={song}
+                      onEdit={userRole === 'superuser' ? handleEdit : undefined}
+                      onDelete={userRole === 'superuser' ? handleDelete : undefined}
+                    />
+                  ))}
+              </div>
+              {filteredSongs.filter(song => song.medleys && song.medleys.length > 0).length === 0 && (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <div className="text-muted-foreground">
+                      <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <h3 className="text-lg font-semibold mb-2">
+                        Nenhum medley encontrado
+                      </h3>
+                      <p>
+                        As músicas que foram tocadas em eventos aparecerão aqui
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         )}
