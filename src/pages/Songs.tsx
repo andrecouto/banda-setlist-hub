@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +20,7 @@ interface Song {
   key: string | null;
   author: string | null;
   lyrics: string | null;
+  chord_chart: string | null;
   created_at: string;
   usage_count?: number;
   last_played?: string;
@@ -42,7 +44,7 @@ export default function Songs() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
-  const [formData, setFormData] = useState({ name: "", key: "", author: "", lyrics: "" });
+  const [formData, setFormData] = useState({ name: "", key: "", author: "", lyrics: "", chord_chart: "" });
   const [searchTerm, setSearchTerm] = useState("");
   const [keyFilter, setKeyFilter] = useState<string>("all");
   const [bandFilter, setBandFilter] = useState<string>("all");
@@ -175,6 +177,7 @@ export default function Songs() {
             key: formData.key || null,
             author: formData.author || null,
             lyrics: formData.lyrics || null,
+            chord_chart: formData.chord_chart || null,
           })
           .eq("id", editingSong.id);
 
@@ -188,13 +191,14 @@ export default function Songs() {
             key: formData.key || null,
             author: formData.author || null,
             lyrics: formData.lyrics || null,
+            chord_chart: formData.chord_chart || null,
           });
 
         if (error) throw error;
         toast({ title: "Sucesso", description: "Música criada!" });
       }
 
-      setFormData({ name: "", key: "", author: "", lyrics: "" });
+      setFormData({ name: "", key: "", author: "", lyrics: "", chord_chart: "" });
       setEditingSong(null);
       setIsDialogOpen(false);
       fetchSongs();
@@ -214,7 +218,8 @@ export default function Songs() {
       name: song.name, 
       key: song.key || "",
       author: song.author || "",
-      lyrics: song.lyrics || ""
+      lyrics: song.lyrics || "",
+      chord_chart: song.chord_chart || ""
     });
     setIsDialogOpen(true);
   };
@@ -240,7 +245,7 @@ export default function Songs() {
 
   const openCreateDialog = () => {
     setEditingSong(null);
-    setFormData({ name: "", key: "", author: "", lyrics: "" });
+    setFormData({ name: "", key: "", author: "", lyrics: "", chord_chart: "" });
     setIsDialogOpen(true);
   };
 
@@ -325,13 +330,26 @@ export default function Songs() {
                 </div>
                 <div>
                   <Label htmlFor="lyrics">Letra</Label>
-                  <Input
+                  <Textarea
                     id="lyrics"
                     value={formData.lyrics}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, lyrics: e.target.value }))
                     }
                     placeholder="Letra da música (opcional)"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="chord_chart">Cifra</Label>
+                  <Textarea
+                    id="chord_chart"
+                    value={formData.chord_chart}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, chord_chart: e.target.value }))
+                    }
+                    placeholder="Cifra da música (opcional)"
+                    rows={4}
                   />
                 </div>
                 <div className="flex gap-2">

@@ -10,6 +10,7 @@ interface SongCardProps {
     key: string | null;
     author: string | null;
     lyrics: string | null;
+    chord_chart: string | null;
     created_at: string;
     usage_count?: number;
     last_played?: string;
@@ -72,6 +73,15 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
           <p className="text-sm text-muted-foreground mb-2">
             <span className="font-medium">Autor:</span> {song.author}
           </p>
+        )}
+        
+        {song.chord_chart && (
+          <div className="mb-3">
+            <p className="text-sm font-medium mb-1">Cifra:</p>
+            <pre className="text-xs bg-muted p-2 rounded-md overflow-x-auto whitespace-pre-wrap font-mono">
+              {song.chord_chart}
+            </pre>
+          </div>
         )}
         
         {song.medleys && song.medleys.length > 0 && (
