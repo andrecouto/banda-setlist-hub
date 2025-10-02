@@ -21,7 +21,7 @@ interface EventCardProps {
 }
 
 export function EventCard({ event, onEdit, onDelete, canManage = false }: EventCardProps) {
-  const eventDate = new Date(event.event_date);
+  const eventDate = new Date(event.event_date + 'T00:00:00');
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
   

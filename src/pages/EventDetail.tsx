@@ -515,7 +515,7 @@ export default function EventDetail() {
               <div className="flex items-center gap-4 mt-2 text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  {new Date(event.event_date).toLocaleDateString()}
+                  {new Date(event.event_date + 'T00:00:00').toLocaleDateString()}
                 </div>
                 <div className="flex items-center gap-1">
                   <Users className="h-4 w-4" />

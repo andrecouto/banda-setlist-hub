@@ -358,9 +358,9 @@ export default function Events() {
     const matchesBand = selectedBand === "all" || selectedBand === "" || event.band_id === selectedBand;
     
     // Date filters
-    const eventDate = new Date(event.event_date);
-    const matchesStartDate = !startDate || eventDate >= new Date(startDate);
-    const matchesEndDate = !endDate || eventDate <= new Date(endDate);
+    const eventDate = new Date(event.event_date + 'T00:00:00');
+    const matchesStartDate = !startDate || eventDate >= new Date(startDate + 'T00:00:00');
+    const matchesEndDate = !endDate || eventDate <= new Date(endDate + 'T00:00:00');
     
     return matchesSearch && matchesBand && matchesStartDate && matchesEndDate;
   });
@@ -398,15 +398,15 @@ export default function Events() {
     filterEventsBySong();
   }, [selectedSong, filteredEvents]);
 
-  const upcomingEvents = eventsWithSongs.filter(event => new Date(event.event_date) > new Date());
-  const pastEvents = eventsWithSongs.filter(event => new Date(event.event_date) <= new Date());
+  const upcomingEvents = eventsWithSongs.filter(event => new Date(event.event_date + 'T00:00:00') > new Date());
+  const pastEvents = eventsWithSongs.filter(event => new Date(event.event_date + 'T00:00:00') <= new Date());
 
   const getEventStats = () => {
     return {
       total: events.length,
-      upcoming: events.filter(event => new Date(event.event_date) > new Date()).length,
+      upcoming: events.filter(event => new Date(event.event_date + 'T00:00:00') > new Date()).length,
       thisMonth: events.filter(event => {
-        const eventDate = new Date(event.event_date);
+        const eventDate = new Date(event.event_date + 'T00:00:00');
         const now = new Date();
         return eventDate.getMonth() === now.getMonth() && eventDate.getFullYear() === now.getFullYear();
       }).length,

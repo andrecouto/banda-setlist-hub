@@ -266,7 +266,7 @@ export default function BandDetail() {
                         <TableRow key={event.id}>
                           <TableCell className="font-medium">{event.name}</TableCell>
                           <TableCell>
-                            {new Date(event.event_date).toLocaleDateString()}
+                            {new Date(event.event_date + 'T00:00:00').toLocaleDateString()}
                           </TableCell>
                           <TableCell>{event.notes || "-"}</TableCell>
                           <TableCell>
