@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
-import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft } from "lucide-react";
+import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft, Share2 } from "lucide-react";
 
 interface Event {
   id: string;
@@ -497,6 +497,42 @@ export default function EventDetail() {
 
   const medleyGroups = [...new Set(eventSongs.filter(es => es.is_medley).map(es => es.medley_group))].filter(Boolean);
 
+  const shareOnWhatsApp = () => {
+    if (!event) return;
+    
+    const formattedDate = new Date(event.event_date + 'T00:00:00').toLocaleDateString('pt-BR', { 
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    let message = `🎵 *${event.name}*\n`;
+    message += `📅 ${formattedDate}\n`;
+    message += `🎸 Banda: ${event.bands.name}\n`;
+    
+    if (eventSongs.length > 0) {
+      message += `\n*Setlist (${eventSongs.length} músicas):*\n`;
+      eventSongs.forEach((eventSong, index) => {
+        message += `${index + 1}. ${eventSong.songs.name}`;
+        if (eventSong.key_played) {
+          message += ` (${eventSong.key_played})`;
+        }
+        if (eventSong.is_medley) {
+          message += ` [Medley]`;
+        }
+        message += '\n';
+      });
+    }
+    
+    if (event.notes) {
+      message += `\n📝 ${event.notes}\n`;
+    }
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -538,14 +574,24 @@ export default function EventDetail() {
               )}
             </div>
 
-            {userRole === 'superuser' && (
-              <Dialog open={isAddSongDialogOpen} onOpenChange={setIsAddSongDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Adicionar Música
-                  </Button>
-                </DialogTrigger>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={shareOnWhatsApp}
+                className="flex items-center gap-2"
+              >
+                <Share2 className="h-4 w-4" />
+                Compartilhar
+              </Button>
+              
+              {userRole === 'superuser' && (
+                <Dialog open={isAddSongDialogOpen} onOpenChange={setIsAddSongDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Adicionar Música
+                    </Button>
+                  </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Adicionar Música ao Setlist</DialogTitle>
@@ -616,7 +662,8 @@ export default function EventDetail() {
                 </div>
               </DialogContent>
               </Dialog>
-            )}
+              )}
+            </div>
           </div>
         </div>
 

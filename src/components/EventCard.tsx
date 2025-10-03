@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Music, Youtube, Edit, Trash, Eye } from "lucide-react";
+import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface EventCardProps {
@@ -24,6 +24,33 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
   const eventDate = new Date(event.event_date + 'T00:00:00');
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
+
+  const shareOnWhatsApp = () => {
+    const formattedDate = eventDate.toLocaleDateString('pt-BR', { 
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    let message = `🎵 *${event.name}*\n`;
+    message += `📅 ${formattedDate}\n`;
+    message += `🎸 Banda: ${event.bands.name}\n`;
+    
+    if (event.songs && event.songs.length > 0) {
+      message += `\n*Músicas do Setlist:*\n`;
+      event.songs.forEach((song, index) => {
+        message += `${index + 1}. ${song.name}`;
+        if (song.key_played) {
+          message += ` (${song.key_played})`;
+        }
+        message += '\n';
+      });
+    }
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
   
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -136,12 +163,23 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
               : `Há ${Math.floor((new Date().getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24))} dias`
             }
           </div>
-          <Link to={`/events/${event.id}`}>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              Ver Detalhes
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={shareOnWhatsApp}
+              className="flex items-center gap-2"
+            >
+              <Share2 className="h-4 w-4" />
+              WhatsApp
             </Button>
-          </Link>
+            <Link to={`/events/${event.id}`}>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Ver Detalhes
+              </Button>
+            </Link>
+          </div>
         </div>
       </CardContent>
     </Card>
