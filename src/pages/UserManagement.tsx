@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -35,6 +36,8 @@ const UserManagement = () => {
   const [bands, setBands] = useState<Band[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Check if user is superuser
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -359,69 +362,115 @@ const UserManagement = () => {
                 <div className="text-lg font-medium">Carregando usuários...</div>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Perfil</TableHead>
-                    <TableHead>Banda</TableHead>
-                    <TableHead>Criado em</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {profiles.map((profile) => (
-                    <TableRow key={profile.id}>
-                      <TableCell className="font-medium">{profile.name}</TableCell>
-                      <TableCell>{profile.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={profile.role === 'superuser' ? 'default' : 'secondary'}>
-                          {profile.role === 'superuser' ? 'Administrador' : 'Usuário Comum'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {profile.band_id ? (
-                          <span className="text-sm text-muted-foreground">
-                            {(profile as any).bands?.name || 'Banda não encontrada'}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Sem banda</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(profile.created_at).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {profile.email !== 'administrador' && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleUpdateRole(profile.id, profile.role)}
-                                className="text-blue-600 hover:text-blue-700"
-                                title={`Alterar para ${profile.role === 'superuser' ? 'Usuário Comum' : 'Administrador'}`}
-                              >
-                                <UserCheck className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteProfile(profile.id, profile.user_id)}
-                                className="text-destructive hover:text-destructive"
-                                title="Excluir perfil"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              (() => {
+                const totalPages = Math.ceil(profiles.length / itemsPerPage);
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                const paginatedProfiles = profiles.slice(startIndex, endIndex);
+
+                return (
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Perfil</TableHead>
+                          <TableHead>Banda</TableHead>
+                          <TableHead>Criado em</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedProfiles.map((profile) => (
+                          <TableRow key={profile.id}>
+                            <TableCell className="font-medium">{profile.name}</TableCell>
+                            <TableCell>{profile.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={profile.role === 'superuser' ? 'default' : 'secondary'}>
+                                {profile.role === 'superuser' ? 'Administrador' : 'Usuário Comum'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {profile.band_id ? (
+                                <span className="text-sm text-muted-foreground">
+                                  {(profile as any).bands?.name || 'Banda não encontrada'}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">Sem banda</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(profile.created_at).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                {profile.email !== 'administrador' && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleUpdateRole(profile.id, profile.role)}
+                                      className="text-blue-600 hover:text-blue-700"
+                                      title={`Alterar para ${profile.role === 'superuser' ? 'Usuário Comum' : 'Administrador'}`}
+                                    >
+                                      <UserCheck className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteProfile(profile.id, profile.user_id)}
+                                      className="text-destructive hover:text-destructive"
+                                      title="Excluir perfil"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="mt-6">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                            
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            ))}
+                            
+                            <PaginationItem>
+                              <PaginationNext 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
+                  </>
+                );
+              })()
             )}
           </CardContent>
         </Card>

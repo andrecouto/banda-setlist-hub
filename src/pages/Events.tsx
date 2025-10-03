@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -75,6 +76,8 @@ export default function Events() {
   const [showUpcoming, setShowUpcoming] = useState(false);
   const [userRole, setUserRole] = useState<string>('band_member');
   const [eventSongs, setEventSongs] = useState<EventSong[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
   const [formData, setFormData] = useState({
     name: "",
     event_date: "",
@@ -674,7 +677,10 @@ export default function Events() {
               </h2>
               <Button
                 variant="outline"
-                onClick={() => setShowUpcoming(!showUpcoming)}
+                onClick={() => {
+                  setShowUpcoming(!showUpcoming);
+                  setCurrentPage(1);
+                }}
                 className="flex items-center gap-2"
               >
                 <Calendar className="h-4 w-4" />
@@ -682,47 +688,76 @@ export default function Events() {
               </Button>
             </div>
             
-            {showUpcoming ? (
-              upcomingEvents.length === 0 ? (
-                <Card>
-                  <CardContent className="text-center py-8">
-                    <p className="text-muted-foreground">Nenhum evento próximo encontrado</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {upcomingEvents.map((event) => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onEdit={userRole === 'superuser' ? handleEdit : undefined}
-                      onDelete={userRole === 'superuser' ? handleDelete : undefined}
-                      canManage={userRole === 'superuser'}
-                    />
-                  ))}
-                </div>
-              )
-            ) : (
-              pastEvents.length === 0 ? (
-                <Card>
-                  <CardContent className="text-center py-8">
-                    <p className="text-muted-foreground">Nenhum evento passado encontrado</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {pastEvents.map((event) => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onEdit={userRole === 'superuser' ? handleEdit : undefined}
-                      onDelete={userRole === 'superuser' ? handleDelete : undefined}
-                      canManage={userRole === 'superuser'}
-                    />
-                  ))}
-                </div>
-              )
-            )}
+            {(() => {
+              const eventsToShow = showUpcoming ? upcomingEvents : pastEvents;
+              const totalPages = Math.ceil(eventsToShow.length / itemsPerPage);
+              const startIndex = (currentPage - 1) * itemsPerPage;
+              const endIndex = startIndex + itemsPerPage;
+              const paginatedEvents = eventsToShow.slice(startIndex, endIndex);
+
+              return (
+                <>
+                  {eventsToShow.length === 0 ? (
+                    <Card>
+                      <CardContent className="text-center py-8">
+                        <p className="text-muted-foreground">
+                          {showUpcoming ? 'Nenhum evento próximo encontrado' : 'Nenhum evento passado encontrado'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {paginatedEvents.map((event) => (
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            onEdit={userRole === 'superuser' ? handleEdit : undefined}
+                            onDelete={userRole === 'superuser' ? handleDelete : undefined}
+                            canManage={userRole === 'superuser'}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Pagination */}
+                      {totalPages > 1 && (
+                        <div className="mt-6">
+                          <Pagination>
+                            <PaginationContent>
+                              <PaginationItem>
+                                <PaginationPrevious 
+                                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                              </PaginationItem>
+                              
+                              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                <PaginationItem key={page}>
+                                  <PaginationLink
+                                    onClick={() => setCurrentPage(page)}
+                                    isActive={currentPage === page}
+                                    className="cursor-pointer"
+                                  >
+                                    {page}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              ))}
+                              
+                              <PaginationItem>
+                                <PaginationNext 
+                                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                              </PaginationItem>
+                            </PaginationContent>
+                          </Pagination>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>

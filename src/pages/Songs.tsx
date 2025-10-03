@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +52,8 @@ export default function Songs() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'name' | 'key' | 'recent' | 'popular'>('name');
   const [userRole, setUserRole] = useState<string>('band_member');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     fetchSongs();
@@ -60,6 +63,7 @@ export default function Songs() {
 
   useEffect(() => {
     filterAndSortSongs();
+    setCurrentPage(1);
   }, [songs, searchTerm, keyFilter, bandFilter, sortBy]);
 
   const fetchUserRole = async () => {
@@ -494,175 +498,221 @@ export default function Songs() {
         </div>
 
         {/* Songs Display */}
-        {filteredSongs.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <div className="text-muted-foreground">
-                <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {songs.length === 0 ? "Nenhuma música cadastrada" : "Nenhuma música encontrada"}
-                </h3>
-                <p className="mb-4">
-                  {songs.length === 0 
-                    ? "Comece adicionando suas primeiras músicas" 
-                    : "Tente ajustar os filtros de busca"
-                  }
-                </p>
-                {songs.length === 0 && userRole === 'superuser' && (
-                  <Button onClick={openCreateDialog} className="flex items-center gap-2 mx-auto">
-                    <Plus className="h-4 w-4" />
-                    Nova Música
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Tabs defaultValue="all" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="all">Todas ({filteredSongs.length})</TabsTrigger>
-              <TabsTrigger value="favorites">Mais Tocadas</TabsTrigger>
-              <TabsTrigger value="recent">Recentes</TabsTrigger>
-              <TabsTrigger value="medleys">
-                Medleys ({filteredSongs.filter(s => s.medleys && s.medleys.length > 0).length})
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all">
-              {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredSongs.map((song) => (
-                    <SongCard
-                      key={song.id}
-                      song={song}
-                      onEdit={userRole === 'superuser' ? handleEdit : undefined}
-                      onDelete={userRole === 'superuser' ? handleDelete : undefined}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-4">Nome</th>
-                            <th className="text-left p-4">Tom</th>
-                            <th className="text-left p-4">Execuções</th>
-                            <th className="text-left p-4">Criada em</th>
-                            <th className="text-left p-4">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredSongs.map((song) => (
-                            <tr key={song.id} className="border-b hover:bg-muted/50">
-                              <td className="p-4 font-medium">{song.name}</td>
-                              <td className="p-4">{song.key || "-"}</td>
-                              <td className="p-4">{song.usage_count || 0}</td>
-                              <td className="p-4">
-                                {new Date(song.created_at).toLocaleDateString()}
-                              </td>
-                              <td className="p-4">
-                                 <div className="flex gap-1">
-                                   {userRole === 'superuser' ? (
-                                     <>
-                                       <Button
-                                         variant="ghost"
-                                         size="sm"
-                                         onClick={() => handleEdit(song)}
-                                       >
-                                         Editar
-                                       </Button>
-                                       <Button
-                                         variant="ghost"
-                                         size="sm"
-                                         onClick={() => handleDelete(song.id)}
-                                       >
-                                         Excluir
-                                       </Button>
-                                     </>
-                                   ) : (
-                                     <span className="text-sm text-muted-foreground">
-                                       Visualização
-                                     </span>
-                                   )}
-                                 </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="favorites">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredSongs
-                  .filter(song => (song.usage_count || 0) > 0)
-                  .sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0))
-                  .map((song) => (
-                    <SongCard
-                      key={song.id}
-                      song={song}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="recent">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredSongs
-                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                  .slice(0, 12)
-                  .map((song) => (
-                    <SongCard
-                      key={song.id}
-                      song={song}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="medleys">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredSongs
-                  .filter(song => song.medleys && song.medleys.length > 0)
-                  .sort((a, b) => (b.medleys?.length || 0) - (a.medleys?.length || 0))
-                  .map((song) => (
-                    <SongCard
-                      key={song.id}
-                      song={song}
-                      onEdit={userRole === 'superuser' ? handleEdit : undefined}
-                      onDelete={userRole === 'superuser' ? handleDelete : undefined}
-                    />
-                  ))}
-              </div>
-              {filteredSongs.filter(song => song.medleys && song.medleys.length > 0).length === 0 && (
+        {(() => {
+          const totalPages = Math.ceil(filteredSongs.length / itemsPerPage);
+          const startIndex = (currentPage - 1) * itemsPerPage;
+          const endIndex = startIndex + itemsPerPage;
+          const paginatedSongs = filteredSongs.slice(startIndex, endIndex);
+
+          return (
+            <>
+              {filteredSongs.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-12">
                     <div className="text-muted-foreground">
                       <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <h3 className="text-lg font-semibold mb-2">
-                        Nenhum medley encontrado
+                        {songs.length === 0 ? "Nenhuma música cadastrada" : "Nenhuma música encontrada"}
                       </h3>
-                      <p>
-                        As músicas que foram tocadas em eventos aparecerão aqui
+                      <p className="mb-4">
+                        {songs.length === 0 
+                          ? "Comece adicionando suas primeiras músicas" 
+                          : "Tente ajustar os filtros de busca"
+                        }
                       </p>
+                      {songs.length === 0 && userRole === 'superuser' && (
+                        <Button onClick={openCreateDialog} className="flex items-center gap-2 mx-auto">
+                          <Plus className="h-4 w-4" />
+                          Nova Música
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
+              ) : (
+                <Tabs defaultValue="all" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="all">Todas ({filteredSongs.length})</TabsTrigger>
+                    <TabsTrigger value="favorites">Mais Tocadas</TabsTrigger>
+                    <TabsTrigger value="recent">Recentes</TabsTrigger>
+                    <TabsTrigger value="medleys">
+                      Medleys ({filteredSongs.filter(s => s.medleys && s.medleys.length > 0).length})
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="all">
+                    {viewMode === 'grid' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {paginatedSongs.map((song) => (
+                          <SongCard
+                            key={song.id}
+                            song={song}
+                            onEdit={userRole === 'superuser' ? handleEdit : undefined}
+                            onDelete={userRole === 'superuser' ? handleDelete : undefined}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <Card>
+                        <CardContent className="p-0">
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b">
+                                  <th className="text-left p-4">Nome</th>
+                                  <th className="text-left p-4">Tom</th>
+                                  <th className="text-left p-4">Execuções</th>
+                                  <th className="text-left p-4">Criada em</th>
+                                  <th className="text-left p-4">Ações</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paginatedSongs.map((song) => (
+                                  <tr key={song.id} className="border-b hover:bg-muted/50">
+                                    <td className="p-4 font-medium">{song.name}</td>
+                                    <td className="p-4">{song.key || "-"}</td>
+                                    <td className="p-4">{song.usage_count || 0}</td>
+                                    <td className="p-4">
+                                      {new Date(song.created_at).toLocaleDateString()}
+                                    </td>
+                                    <td className="p-4">
+                                      <div className="flex gap-1">
+                                        {userRole === 'superuser' ? (
+                                          <>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleEdit(song)}
+                                            >
+                                              Editar
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleDelete(song.id)}
+                                            >
+                                              Excluir
+                                            </Button>
+                                          </>
+                                        ) : (
+                                          <span className="text-sm text-muted-foreground">
+                                            Visualização
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="mt-6">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                            
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            ))}
+                            
+                            <PaginationItem>
+                              <PaginationNext 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="favorites">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredSongs
+                        .filter(song => (song.usage_count || 0) > 0)
+                        .sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0))
+                        .map((song) => (
+                          <SongCard
+                            key={song.id}
+                            song={song}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                          />
+                        ))}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="recent">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredSongs
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .slice(0, 12)
+                        .map((song) => (
+                          <SongCard
+                            key={song.id}
+                            song={song}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                          />
+                        ))}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="medleys">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredSongs
+                        .filter(song => song.medleys && song.medleys.length > 0)
+                        .sort((a, b) => (b.medleys?.length || 0) - (a.medleys?.length || 0))
+                        .map((song) => (
+                          <SongCard
+                            key={song.id}
+                            song={song}
+                            onEdit={userRole === 'superuser' ? handleEdit : undefined}
+                            onDelete={userRole === 'superuser' ? handleDelete : undefined}
+                          />
+                        ))}
+                    </div>
+                    {filteredSongs.filter(song => song.medleys && song.medleys.length > 0).length === 0 && (
+                      <Card>
+                        <CardContent className="text-center py-12">
+                          <div className="text-muted-foreground">
+                            <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <h3 className="text-lg font-semibold mb-2">
+                              Nenhum medley encontrado
+                            </h3>
+                            <p>
+                              As músicas que foram tocadas em eventos aparecerão aqui
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+                </Tabs>
               )}
-            </TabsContent>
-          </Tabs>
-        )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );

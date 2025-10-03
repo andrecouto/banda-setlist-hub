@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +33,8 @@ export default function Bands() {
   const [formData, setFormData] = useState({ name: "", description: "" });
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [userRole, setUserRole] = useState<string>('band_member');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     fetchBands();
@@ -289,82 +292,128 @@ export default function Bands() {
               </p>
             </div>
             
-            {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {bands.map((band) => (
-                  <BandCard
-                    key={band.id}
-                    band={band}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    canManage={userRole === 'superuser'}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Lista de Bandas</CardTitle>
-                  <CardDescription>
-                    Visualização em tabela
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2">Nome</th>
-                          <th className="text-left p-2">Membros</th>
-                          <th className="text-left p-2">Eventos</th>
-                          <th className="text-left p-2">Criada em</th>
-                          {userRole === 'superuser' && <th className="text-left p-2">Ações</th>}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bands.map((band) => (
-                          <tr key={band.id} className="border-b hover:bg-muted/50">
-                            <td className="p-2">
-                              <div>
-                                <div className="font-medium">{band.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {band.description || "Sem descrição"}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-2">{band.member_count || 0}</td>
-                            <td className="p-2">{band.event_count || 0}</td>
-                            <td className="p-2">
-                              {new Date(band.created_at).toLocaleDateString()}
-                            </td>
-                            {userRole === 'superuser' && (
-                              <td className="p-2">
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEdit(band)}
-                                  >
-                                    Editar
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDelete(band.id)}
-                                  >
-                                    Excluir
-                                  </Button>
-                                </div>
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {(() => {
+              const totalPages = Math.ceil(bands.length / itemsPerPage);
+              const startIndex = (currentPage - 1) * itemsPerPage;
+              const endIndex = startIndex + itemsPerPage;
+              const paginatedBands = bands.slice(startIndex, endIndex);
+
+              return (
+                <>
+                  {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {paginatedBands.map((band) => (
+                        <BandCard
+                          key={band.id}
+                          band={band}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                          canManage={userRole === 'superuser'}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Lista de Bandas</CardTitle>
+                        <CardDescription>
+                          Visualização em tabela
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-2">Nome</th>
+                                <th className="text-left p-2">Membros</th>
+                                <th className="text-left p-2">Eventos</th>
+                                <th className="text-left p-2">Criada em</th>
+                                {userRole === 'superuser' && <th className="text-left p-2">Ações</th>}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paginatedBands.map((band) => (
+                                <tr key={band.id} className="border-b hover:bg-muted/50">
+                                  <td className="p-2">
+                                    <div>
+                                      <div className="font-medium">{band.name}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {band.description || "Sem descrição"}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="p-2">{band.member_count || 0}</td>
+                                  <td className="p-2">{band.event_count || 0}</td>
+                                  <td className="p-2">
+                                    {new Date(band.created_at).toLocaleDateString()}
+                                  </td>
+                                  {userRole === 'superuser' && (
+                                    <td className="p-2">
+                                      <div className="flex gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleEdit(band)}
+                                        >
+                                          Editar
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleDelete(band.id)}
+                                        >
+                                          Excluir
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-6">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious 
+                              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                            />
+                          </PaginationItem>
+                          
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={currentPage === page}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          ))}
+                          
+                          <PaginationItem>
+                            <PaginationNext 
+                              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </>
         )}
       </div>
