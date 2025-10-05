@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
-import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft, Share2 } from "lucide-react";
+import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft } from "lucide-react";
 
 interface Event {
   id: string;
@@ -592,15 +592,9 @@ export default function EventDetail() {
               )}
             </div>
 
-            <div className="flex gap-2">
-              <Button asChild variant="outline" className="flex items-center gap-2">
-                <a href={`/redirect?to=${encodeURIComponent(whatsappUrl)}`} target="_blank" rel="noopener noreferrer" onClick={handleShareClick}>
-                  <Share2 className="h-4 w-4" />
-                  Compartilhar
-                </a>
-              </Button>
               
-              {userRole === 'superuser' && (
+              <div className="flex gap-2">
+                {userRole === 'superuser' && (
                 <Dialog open={isAddSongDialogOpen} onOpenChange={setIsAddSongDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="flex items-center gap-2">

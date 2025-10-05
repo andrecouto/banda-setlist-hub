@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Share2 } from "lucide-react";
+import { Calendar, Users, Music, Youtube, Edit, Trash, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -190,12 +190,6 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
             }
           </div>
           <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm" className="flex items-center gap-2">
-              <a href={`/redirect?to=${encodeURIComponent(whatsappUrl)}`} target="_blank" rel="noopener noreferrer" onClick={handleShareClick}>
-                <Share2 className="h-4 w-4" />
-                WhatsApp
-              </a>
-            </Button>
             <Link to={`/events/${event.id}`}>
               <Button variant="outline" size="sm" className="flex items-center gap-2">
                 <Eye className="h-4 w-4" />
