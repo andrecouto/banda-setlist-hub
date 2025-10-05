@@ -16,6 +16,7 @@ import EventDetail from "./pages/EventDetail";
 import Songs from "./pages/Songs";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
+import Redirect from "./pages/Redirect";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/events/:id" element={<ProtectedRoute><EventDetail /></ProtectedRoute>} />
               <Route path="/songs" element={<ProtectedRoute><Songs /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/redirect" element={<ProtectedRoute><Redirect /></ProtectedRoute>} />
               <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

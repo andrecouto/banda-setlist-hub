@@ -191,7 +191,7 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline" size="sm" className="flex items-center gap-2">
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" onClick={handleShareClick}>
+              <a href={`/redirect?to=${encodeURIComponent(whatsappUrl)}`} target="_blank" rel="noopener noreferrer" onClick={handleShareClick}>
                 <Share2 className="h-4 w-4" />
                 WhatsApp
               </a>
