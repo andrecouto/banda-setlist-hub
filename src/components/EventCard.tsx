@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface EventCardProps {
   event: {
@@ -24,6 +25,7 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
   const eventDate = new Date(event.event_date + 'T00:00:00');
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
+  const { toast } = useToast();
 
   // Prepara a URL do WhatsApp fora do handler para evitar bloqueios/iframe
   const formattedDate = eventDate.toLocaleDateString('pt-BR', { 
@@ -49,6 +51,32 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
   }
   
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  const whatsappUrlAlt = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+
+  const handleShareClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: message });
+        e.preventDefault();
+        return;
+      } catch {}
+    }
+    try {
+      const urls = [whatsappUrl, whatsappUrlAlt];
+      for (const url of urls) {
+        const win = window.top?.open(url, '_blank', 'noopener,noreferrer');
+        if (win) {
+          e.preventDefault();
+          return;
+        }
+      }
+    } catch {}
+    try {
+      await navigator.clipboard.writeText(message);
+      toast({ title: "Mensagem copiada", description: "Abra o WhatsApp e cole a mensagem." });
+      e.preventDefault();
+    } catch {}
+  };
   
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -163,7 +191,7 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline" size="sm" className="flex items-center gap-2">
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" onClick={handleShareClick}>
                 <Share2 className="h-4 w-4" />
                 WhatsApp
               </a>

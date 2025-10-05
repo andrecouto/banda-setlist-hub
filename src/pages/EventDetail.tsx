@@ -498,7 +498,8 @@ export default function EventDetail() {
   const medleyGroups = [...new Set(eventSongs.filter(es => es.is_medley).map(es => es.medley_group))].filter(Boolean);
 
   // URL de compartilhamento do WhatsApp (abre em nova guia para evitar bloqueios/iframe)
-  const whatsappUrl = (() => {
+  // Mensagem e URLs de compartilhamento do WhatsApp
+  const shareMessage = (() => {
     if (!event) return '';
     const formattedDate = new Date(event.event_date + 'T00:00:00').toLocaleDateString('pt-BR', { 
       weekday: 'long',
@@ -519,8 +520,36 @@ export default function EventDetail() {
       });
     }
     if (event.notes) message += `\n📝 ${event.notes}\n`;
-    return `https://wa.me/?text=${encodeURIComponent(message)}`;
+    return message;
   })();
+
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
+  const whatsappUrlAlt = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`;
+
+  const handleShareClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: shareMessage });
+        e.preventDefault();
+        return;
+      } catch {}
+    }
+    try {
+      const urls = [whatsappUrl, whatsappUrlAlt];
+      for (const url of urls) {
+        const win = window.top?.open(url, '_blank', 'noopener,noreferrer');
+        if (win) {
+          e.preventDefault();
+          return;
+        }
+      }
+    } catch {}
+    try {
+      await navigator.clipboard.writeText(shareMessage);
+      toast({ title: "Mensagem copiada", description: "Abra o WhatsApp e cole a mensagem." });
+      e.preventDefault();
+    } catch {}
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -565,7 +594,7 @@ export default function EventDetail() {
 
             <div className="flex gap-2">
               <Button asChild variant="outline" className="flex items-center gap-2">
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" onClick={handleShareClick}>
                   <Share2 className="h-4 w-4" />
                   Compartilhar
                 </a>
