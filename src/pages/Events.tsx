@@ -369,12 +369,12 @@ export default function Events() {
   });
 
   // Filter by song if selected
-  const [eventsWithSongs, setEventsWithSongs] = useState<Event[]>([]);
+  const [songEventIds, setSongEventIds] = useState<Set<string>>(new Set());
   
   useEffect(() => {
     const filterEventsBySong = async () => {
       if (!selectedSong || selectedSong === "all") {
-        setEventsWithSongs(filteredEvents);
+        setSongEventIds(new Set());
         return;
       }
       
@@ -386,20 +386,19 @@ export default function Events() {
           
         if (error) throw error;
         
-        const eventIdsWithSong = new Set(data.map(item => item.event_id));
-        const eventsWithSelectedSong = filteredEvents.filter(event => 
-          eventIdsWithSong.has(event.id)
-        );
-        
-        setEventsWithSongs(eventsWithSelectedSong);
+        setSongEventIds(new Set(data.map(item => item.event_id)));
       } catch (error) {
         console.error("Error filtering events by song:", error);
-        setEventsWithSongs(filteredEvents);
+        setSongEventIds(new Set());
       }
     };
     
     filterEventsBySong();
-  }, [selectedSong, filteredEvents]);
+  }, [selectedSong]);
+
+  const eventsWithSongs = selectedSong && selectedSong !== "all"
+    ? filteredEvents.filter(event => songEventIds.has(event.id))
+    : filteredEvents;
 
   const upcomingEvents = eventsWithSongs.filter(event => new Date(event.event_date + 'T00:00:00') > new Date());
   const pastEvents = eventsWithSongs.filter(event => new Date(event.event_date + 'T00:00:00') <= new Date());

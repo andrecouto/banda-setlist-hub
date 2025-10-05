@@ -49,7 +49,7 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
     }
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    window.location.href = whatsappUrl;
   };
   
   return (
