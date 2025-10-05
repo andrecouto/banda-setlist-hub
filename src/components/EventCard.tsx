@@ -25,32 +25,30 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
 
-  const shareOnWhatsApp = () => {
-    const formattedDate = eventDate.toLocaleDateString('pt-BR', { 
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+  // Prepara a URL do WhatsApp fora do handler para evitar bloqueios/iframe
+  const formattedDate = eventDate.toLocaleDateString('pt-BR', { 
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  
+  let message = `🎵 *${event.name}*\n`;
+  message += `📅 ${formattedDate}\n`;
+  message += `🎸 Banda: ${event.bands.name}\n`;
+  
+  if (event.songs && event.songs.length > 0) {
+    message += `\n*Músicas do Setlist:*\n`;
+    event.songs.forEach((song, index) => {
+      message += `${index + 1}. ${song.name}`;
+      if (song.key_played) {
+        message += ` (${song.key_played})`;
+      }
+      message += '\n';
     });
-    
-    let message = `🎵 *${event.name}*\n`;
-    message += `📅 ${formattedDate}\n`;
-    message += `🎸 Banda: ${event.bands.name}\n`;
-    
-    if (event.songs && event.songs.length > 0) {
-      message += `\n*Músicas do Setlist:*\n`;
-      event.songs.forEach((song, index) => {
-        message += `${index + 1}. ${song.name}`;
-        if (song.key_played) {
-          message += ` (${song.key_played})`;
-        }
-        message += '\n';
-      });
-    }
-    
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.location.href = whatsappUrl;
-  };
+  }
+  
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
   
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -164,14 +162,11 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
             }
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={shareOnWhatsApp}
-              className="flex items-center gap-2"
-            >
-              <Share2 className="h-4 w-4" />
-              WhatsApp
+            <Button asChild variant="outline" size="sm" className="flex items-center gap-2">
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                <Share2 className="h-4 w-4" />
+                WhatsApp
+              </a>
             </Button>
             <Link to={`/events/${event.id}`}>
               <Button variant="outline" size="sm" className="flex items-center gap-2">

@@ -497,41 +497,30 @@ export default function EventDetail() {
 
   const medleyGroups = [...new Set(eventSongs.filter(es => es.is_medley).map(es => es.medley_group))].filter(Boolean);
 
-  const shareOnWhatsApp = () => {
-    if (!event) return;
-    
+  // URL de compartilhamento do WhatsApp (abre em nova guia para evitar bloqueios/iframe)
+  const whatsappUrl = (() => {
+    if (!event) return '';
     const formattedDate = new Date(event.event_date + 'T00:00:00').toLocaleDateString('pt-BR', { 
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-    
     let message = `🎵 *${event.name}*\n`;
     message += `📅 ${formattedDate}\n`;
     message += `🎸 Banda: ${event.bands.name}\n`;
-    
     if (eventSongs.length > 0) {
       message += `\n*Setlist (${eventSongs.length} músicas):*\n`;
       eventSongs.forEach((eventSong, index) => {
         message += `${index + 1}. ${eventSong.songs.name}`;
-        if (eventSong.key_played) {
-          message += ` (${eventSong.key_played})`;
-        }
-        if (eventSong.is_medley) {
-          message += ` [Medley]`;
-        }
+        if (eventSong.key_played) message += ` (${eventSong.key_played})`;
+        if (eventSong.is_medley) message += ` [Medley]`;
         message += '\n';
       });
     }
-    
-    if (event.notes) {
-      message += `\n📝 ${event.notes}\n`;
-    }
-    
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.location.href = whatsappUrl;
-  };
+    if (event.notes) message += `\n📝 ${event.notes}\n`;
+    return `https://wa.me/?text=${encodeURIComponent(message)}`;
+  })();
 
   return (
     <div className="min-h-screen bg-background">
@@ -575,13 +564,11 @@ export default function EventDetail() {
             </div>
 
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={shareOnWhatsApp}
-                className="flex items-center gap-2"
-              >
-                <Share2 className="h-4 w-4" />
-                Compartilhar
+              <Button asChild variant="outline" className="flex items-center gap-2">
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  <Share2 className="h-4 w-4" />
+                  Compartilhar
+                </a>
               </Button>
               
               {userRole === 'superuser' && (
