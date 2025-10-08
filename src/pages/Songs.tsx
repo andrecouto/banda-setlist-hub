@@ -281,12 +281,13 @@ export default function Songs() {
           {userRole === 'superuser' && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={openCreateDialog} className="flex items-center gap-2">
+                <Button onClick={openCreateDialog} className="flex items-center gap-2 w-full sm:w-auto text-sm">
                   <Plus className="h-4 w-4" />
-                  Nova Música
+                  <span className="hidden sm:inline">Nova Música</span>
+                  <span className="sm:hidden">Nova</span>
                 </Button>
               </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingSong ? "Editar Música" : "Nova Música"}
@@ -377,7 +378,7 @@ export default function Songs() {
         {/* Search and Filter Controls */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -390,9 +391,9 @@ export default function Songs() {
                 </div>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Select value={keyFilter} onValueChange={setKeyFilter}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-[120px] sm:w-32">
                     <SelectValue placeholder="Tom" />
                   </SelectTrigger>
                   <SelectContent>
@@ -404,7 +405,7 @@ export default function Songs() {
                 </Select>
 
                 <Select value={bandFilter} onValueChange={setBandFilter}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-[140px] sm:w-40">
                     <SelectValue placeholder="Banda" />
                   </SelectTrigger>
                   <SelectContent>
@@ -416,7 +417,7 @@ export default function Songs() {
                 </Select>
 
                 <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-[140px] sm:w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -449,7 +450,7 @@ export default function Songs() {
         </Card>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total</CardTitle>
@@ -531,18 +532,18 @@ export default function Songs() {
                 </Card>
               ) : (
                 <Tabs defaultValue="all" className="space-y-4">
-                  <TabsList>
-                    <TabsTrigger value="all">Todas ({filteredSongs.length})</TabsTrigger>
-                    <TabsTrigger value="favorites">Mais Tocadas</TabsTrigger>
-                    <TabsTrigger value="recent">Recentes</TabsTrigger>
-                    <TabsTrigger value="medleys">
-                      Medleys ({filteredSongs.filter(s => s.medleys && s.medleys.length > 0).length})
-                    </TabsTrigger>
-                  </TabsList>
+                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+                      <TabsTrigger value="all" className="text-xs sm:text-sm">Todas ({filteredSongs.length})</TabsTrigger>
+                      <TabsTrigger value="favorites" className="text-xs sm:text-sm">Mais Tocadas</TabsTrigger>
+                      <TabsTrigger value="recent" className="text-xs sm:text-sm">Recentes</TabsTrigger>
+                      <TabsTrigger value="medleys" className="text-xs sm:text-sm">
+                        Medleys ({filteredSongs.filter(s => s.medleys && s.medleys.length > 0).length})
+                      </TabsTrigger>
+                    </TabsList>
                   
                   <TabsContent value="all">
                     {viewMode === 'grid' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {paginatedSongs.map((song) => (
                           <SongCard
                             key={song.id}

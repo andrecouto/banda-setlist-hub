@@ -256,8 +256,8 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
         {/* Botão Home no canto superior esquerdo */}
         <div className="flex justify-start">
           <Link to="/">
@@ -272,14 +272,14 @@ const UserManagement = () => {
           </Link>
         </div>
         
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <div className="p-3 rounded-full bg-primary/10">
-              <Users className="h-8 w-8 text-primary" />
+        <div className="text-center space-y-3 md:space-y-4">
+          <div className="flex items-center justify-center gap-2 md:gap-3">
+            <div className="p-2 md:p-3 rounded-full bg-primary/10">
+              <Users className="h-6 w-6 md:h-8 md:w-8 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold text-gradient">Gerenciamento de Usuários</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-gradient">Gerenciamento de Usuários</h1>
           </div>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-sm md:text-lg text-muted-foreground px-4">
             Crie e gerencie usuários do sistema
           </p>
         </div>
@@ -296,7 +296,7 @@ const UserManagement = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome</Label>
                 <Input
@@ -354,7 +354,7 @@ const UserManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end sm:col-span-2 lg:col-span-1">
                 <Button type="submit" className="w-full btn-gradient" disabled={isCreating}>
                   {isCreating ? "Criando..." : "Criar Usuário"}
                 </Button>
@@ -385,17 +385,18 @@ const UserManagement = () => {
 
                 return (
                   <>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Perfil</TableHead>
-                          <TableHead>Banda</TableHead>
-                          <TableHead>Criado em</TableHead>
-                          <TableHead>Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                    <div className="overflow-x-auto -mx-4 sm:mx-0">
+                      <Table className="min-w-[900px]">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[150px]">Nome</TableHead>
+                            <TableHead className="min-w-[200px]">Email</TableHead>
+                            <TableHead className="min-w-[130px]">Perfil</TableHead>
+                            <TableHead className="min-w-[120px]">Banda</TableHead>
+                            <TableHead className="min-w-[110px]">Criado em</TableHead>
+                            <TableHead className="min-w-[220px]">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
                       <TableBody>
                         {paginatedProfiles.map((profile) => (
                           <TableRow key={profile.id}>
@@ -454,6 +455,7 @@ const UserManagement = () => {
                         ))}
                       </TableBody>
                     </Table>
+                    </div>
 
                     {/* Pagination */}
                     {totalPages > 1 && (

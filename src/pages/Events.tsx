@@ -431,21 +431,21 @@ export default function Events() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Eventos</h1>
-            <p className="text-muted-foreground">Gerencie seus eventos e apresentações</p>
-            <div className="flex gap-4 mt-2">
-              <Badge variant="outline" className="flex items-center gap-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Eventos</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Gerencie seus eventos e apresentações</p>
+            <div className="flex flex-wrap gap-2 md:gap-4 mt-2">
+              <Badge variant="outline" className="flex items-center gap-1 text-xs">
                 <Calendar className="h-3 w-3" />
                 {stats.total} eventos
               </Badge>
-              <Badge variant="default" className="flex items-center gap-1">
+              <Badge variant="default" className="flex items-center gap-1 text-xs">
                 <Users className="h-3 w-3" />
                 {stats.upcoming} próximos
               </Badge>
-              <Badge variant="secondary" className="flex items-center gap-1">
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                 <Music className="h-3 w-3" />
                 {stats.thisMonth} este mês
               </Badge>
@@ -454,12 +454,13 @@ export default function Events() {
           {userRole === 'superuser' && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={openCreateDialog} className="flex items-center gap-2">
+                <Button onClick={openCreateDialog} className="flex items-center gap-2 w-full sm:w-auto text-sm">
                   <Plus className="h-4 w-4" />
-                  Novo Evento
+                  <span className="hidden sm:inline">Novo Evento</span>
+                  <span className="sm:hidden">Novo</span>
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingEvent ? "Editar Evento" : "Novo Evento"}
@@ -593,8 +594,8 @@ export default function Events() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="lg:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="sm:col-span-2 lg:col-span-2">
                   <Input
                     placeholder="Buscar eventos..."
                     value={searchTerm}
@@ -644,7 +645,7 @@ export default function Events() {
                 </Button>
               </div>
               
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <Label htmlFor="start-date" className="text-sm font-medium">Data inicial</Label>
                   <Input
@@ -706,7 +707,7 @@ export default function Events() {
                     </Card>
                   ) : (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {paginatedEvents.map((event) => (
                           <EventCard
                             key={event.id}

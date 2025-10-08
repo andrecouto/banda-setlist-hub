@@ -129,18 +129,18 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5">
       <Navigation />
-      <div className="max-w-7xl mx-auto space-y-8 p-6">
+      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 p-4 md:p-6">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <div className="p-3 rounded-full bg-primary/10 animate-pulse-glow">
-              <Music className="h-8 w-8 text-primary" />
+        <div className="text-center space-y-3 md:space-y-4">
+          <div className="flex items-center justify-center gap-2 md:gap-3">
+            <div className="p-2 md:p-3 rounded-full bg-primary/10 animate-pulse-glow">
+              <Music className="h-6 w-6 md:h-8 md:w-8 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold text-gradient font-poppins">
+            <h1 className="text-2xl md:text-4xl font-bold text-gradient font-poppins">
               {userProfile?.role === 'superuser' ? 'Painel Administrativo' : 'Band Manager'}
             </h1>
           </div>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-sm md:text-lg text-muted-foreground px-4">
             {userProfile?.role === 'superuser' 
               ? 'Gerencie todas as bandas e usuários do sistema'
               : userProfile?.bands?.name 
@@ -149,10 +149,10 @@ const Index = () => {
             }
           </p>
           {userProfile?.role === 'superuser' && (
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-2 md:gap-4">
               <Link to="/user-management">
-                <Button className="btn-gradient">
-                  <Settings className="h-4 w-4 mr-2" />
+                <Button className="btn-gradient text-xs md:text-sm">
+                  <Settings className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                   Gerenciar Usuários
                 </Button>
               </Link>
@@ -235,15 +235,15 @@ const Index = () => {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <Link to="/bands">
-            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group">
-              <CardContent className="flex flex-col items-center p-6 text-center">
-                <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-4">
-                  <Users className="h-8 w-8 text-primary" />
+            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group h-full">
+              <CardContent className="flex flex-col items-center p-4 md:p-6 text-center">
+                <div className="p-3 md:p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-3 md:mb-4">
+                  <Users className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Bandas</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Bandas</h3>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {userProfile?.role === 'superuser' ? 'Gerencie todas as bandas' : 'Visualize bandas'}
                 </p>
               </CardContent>
@@ -251,13 +251,13 @@ const Index = () => {
           </Link>
 
           <Link to="/events">
-            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group">
-              <CardContent className="flex flex-col items-center p-6 text-center">
-                <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-4">
-                  <Calendar className="h-8 w-8 text-primary" />
+            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group h-full">
+              <CardContent className="flex flex-col items-center p-4 md:p-6 text-center">
+                <div className="p-3 md:p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-3 md:mb-4">
+                  <Calendar className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Eventos</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Eventos</h3>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {userProfile?.role === 'superuser' ? 'Organize e gerencie eventos' : 'Visualize eventos'}
                 </p>
               </CardContent>
@@ -265,13 +265,13 @@ const Index = () => {
           </Link>
 
           <Link to="/songs">
-            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group">
-              <CardContent className="flex flex-col items-center p-6 text-center">
-                <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-4">
-                  <Music className="h-8 w-8 text-primary" />
+            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group h-full">
+              <CardContent className="flex flex-col items-center p-4 md:p-6 text-center">
+                <div className="p-3 md:p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-3 md:mb-4">
+                  <Music className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Músicas</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Músicas</h3>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {userProfile?.role === 'superuser' ? 'Gerencie repertório musical' : 'Visualize repertório'}
                 </p>
               </CardContent>
@@ -279,13 +279,13 @@ const Index = () => {
           </Link>
 
           <Link to="/profile">
-            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group">
-              <CardContent className="flex flex-col items-center p-6 text-center">
-                <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-4">
-                  <Star className="h-8 w-8 text-primary" />
+            <Card className="card-glass hover:card-hover transition-all duration-300 cursor-pointer group h-full">
+              <CardContent className="flex flex-col items-center p-4 md:p-6 text-center">
+                <div className="p-3 md:p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mb-3 md:mb-4">
+                  <Star className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Perfil</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Perfil</h3>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   Configure sua conta e preferências
                 </p>
               </CardContent>

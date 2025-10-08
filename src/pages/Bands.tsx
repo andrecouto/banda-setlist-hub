@@ -180,11 +180,11 @@ export default function Bands() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Bandas</h1>
-            <p className="text-muted-foreground">Gerencie suas bandas</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Bandas</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Gerencie suas bandas</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center border rounded-lg p-1">
@@ -301,7 +301,7 @@ export default function Bands() {
               return (
                 <>
                   {viewMode === 'grid' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       {paginatedBands.map((band) => (
                         <BandCard
                           key={band.id}
@@ -321,8 +321,8 @@ export default function Bands() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
+                        <div className="overflow-x-auto -mx-4 sm:mx-0">
+                          <table className="w-full min-w-[600px]">
                             <thead>
                               <tr className="border-b">
                                 <th className="text-left p-2">Nome</th>
