@@ -19,7 +19,7 @@ interface Profile {
   user_id: string;
   name: string;
   email: string;
-  role: 'superuser' | 'band_member';
+  role: 'superuser' | 'band_admin' | 'band_member';
   band_id: string | null;
   created_at: string;
 }
@@ -115,7 +115,7 @@ const UserManagement = () => {
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const role = formData.get('role') as 'superuser' | 'band_member';
+    const role = formData.get('role') as 'superuser' | 'band_admin' | 'band_member';
     const bandId = formData.get('band_id') as string;
 
     try {
@@ -200,20 +200,34 @@ const UserManagement = () => {
     }
   };
 
-  const handleUpdateRole = async (profileId: string, currentRole: string) => {
-    const newRole = currentRole === 'superuser' ? 'band_member' : 'superuser';
+  const handleUpdateRole = async (profileId: string, currentRole: string, targetRole: 'superuser' | 'band_admin' | 'band_member') => {
+    // Only superusers can change to/from superuser role
+    if (userRole !== 'superuser' && (targetRole === 'superuser' || currentRole === 'superuser')) {
+      toast({
+        variant: "destructive",
+        title: "Permissão negada",
+        description: "Apenas administradores podem gerenciar o role de superusuário",
+      });
+      return;
+    }
     
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ role: newRole })
+        .update({ role: targetRole })
         .eq('id', profileId);
 
       if (error) throw error;
 
+      const roleNames = {
+        superuser: 'Administrador',
+        band_admin: 'Administrador de Banda',
+        band_member: 'Usuário Comum'
+      };
+
       toast({
         title: "Role atualizado!",
-        description: `Usuário agora é ${newRole === 'superuser' ? 'Administrador' : 'Usuário Comum'}`,
+        description: `Usuário agora é ${roleNames[targetRole]}`,
       });
 
       fetchProfiles();
@@ -320,6 +334,7 @@ const UserManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="band_member">Usuário Comum</SelectItem>
+                    <SelectItem value="band_admin">Administrador de Banda</SelectItem>
                     <SelectItem value="superuser">Administrador</SelectItem>
                   </SelectContent>
                 </Select>
@@ -387,8 +402,8 @@ const UserManagement = () => {
                             <TableCell className="font-medium">{profile.name}</TableCell>
                             <TableCell>{profile.email}</TableCell>
                             <TableCell>
-                              <Badge variant={profile.role === 'superuser' ? 'default' : 'secondary'}>
-                                {profile.role === 'superuser' ? 'Administrador' : 'Usuário Comum'}
+                              <Badge variant={profile.role === 'superuser' ? 'default' : profile.role === 'band_admin' ? 'outline' : 'secondary'}>
+                                {profile.role === 'superuser' ? 'Administrador' : profile.role === 'band_admin' ? 'Admin de Banda' : 'Usuário Comum'}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -407,15 +422,21 @@ const UserManagement = () => {
                               <div className="flex gap-2">
                                 {profile.email !== 'administrador' && (
                                   <>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleUpdateRole(profile.id, profile.role)}
-                                      className="text-blue-600 hover:text-blue-700"
-                                      title={`Alterar para ${profile.role === 'superuser' ? 'Usuário Comum' : 'Administrador'}`}
+                                    <Select
+                                      value={profile.role}
+                                      onValueChange={(value) => handleUpdateRole(profile.id, profile.role, value as 'superuser' | 'band_admin' | 'band_member')}
                                     >
-                                      <UserCheck className="h-4 w-4" />
-                                    </Button>
+                                      <SelectTrigger className="h-8 w-[180px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="band_member">Usuário Comum</SelectItem>
+                                        <SelectItem value="band_admin">Admin de Banda</SelectItem>
+                                        {userRole === 'superuser' && (
+                                          <SelectItem value="superuser">Administrador</SelectItem>
+                                        )}
+                                      </SelectContent>
+                                    </Select>
                                     <Button
                                       variant="ghost"
                                       size="sm"

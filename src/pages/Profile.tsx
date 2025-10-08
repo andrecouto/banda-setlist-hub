@@ -15,7 +15,7 @@ interface Profile {
   id: string;
   name: string;
   email: string;
-  role: 'band_member' | 'superuser';
+  role: 'band_member' | 'band_admin' | 'superuser';
   band_id: string | null;
   bands?: {
     id: string;
