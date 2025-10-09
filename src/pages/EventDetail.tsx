@@ -594,7 +594,7 @@ export default function EventDetail() {
 
               
               <div className="flex gap-2">
-                {userRole === 'superuser' && (
+                {(userRole === 'superuser' || userRole === 'band_admin') && (
                 <Dialog open={isAddSongDialogOpen} onOpenChange={setIsAddSongDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="flex items-center gap-2">
@@ -722,7 +722,7 @@ export default function EventDetail() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {userRole === 'superuser' ? (
+                        {(userRole === 'superuser' || userRole === 'band_admin') ? (
                           <div className="flex gap-1">
                             <Button
                               variant="outline"
@@ -769,7 +769,7 @@ export default function EventDetail() {
                   {eventParticipants.length} participante(s) no evento
                 </CardDescription>
               </div>
-                {userRole === 'superuser' && (
+                {(userRole === 'superuser' || userRole === 'band_admin') && (
                   <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
                     <DialogTrigger asChild>
                       <Button size="sm" className="flex items-center gap-2">
@@ -856,7 +856,7 @@ export default function EventDetail() {
                         {participant.instrument || "-"}
                       </TableCell>
                       <TableCell>
-                        {userRole === 'superuser' ? (
+                        {(userRole === 'superuser' || userRole === 'band_admin') ? (
                           <Button
                             variant="outline"
                             size="sm"

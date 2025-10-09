@@ -451,7 +451,7 @@ export default function Events() {
               </Badge>
             </div>
           </div>
-          {userRole === 'superuser' && (
+          {(userRole === 'superuser' || userRole === 'band_admin') && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={openCreateDialog} className="flex items-center gap-2 w-full sm:w-auto text-sm">
