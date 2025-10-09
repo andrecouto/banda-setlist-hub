@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
-import { ArrowLeft, Users, Calendar, Music, UserPlus } from "lucide-react";
+import { ArrowLeft, Users, Calendar, Music, UserPlus, UserMinus } from "lucide-react";
 
 interface BandDetails {
   id: string;
@@ -22,8 +24,16 @@ interface Member {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: 'superuser' | 'band_admin' | 'band_member';
   joined_at: string;
+  user_id: string;
+}
+
+interface AvailableUser {
+  id: string;
+  name: string;
+  email: string;
+  user_id: string;
 }
 
 interface Event {
@@ -41,12 +51,42 @@ export default function BandDetail() {
   const [members, setMembers] = useState<Member[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string>("");
+  const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
 
   useEffect(() => {
-    if (id) {
+    if (id && user) {
       fetchBandDetails();
+      fetchUserRole();
     }
-  }, [id]);
+  }, [id, user]);
+
+  const fetchUserRole = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!error && data) {
+      setUserRole(data.role);
+    }
+  };
+
+  const fetchAvailableUsers = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, name, email, user_id, band_id")
+      .is("band_id", null);
+
+    if (!error && data) {
+      setAvailableUsers(data);
+    }
+  };
 
   const fetchBandDetails = async () => {
     try {
@@ -63,7 +103,7 @@ export default function BandDetail() {
       // Fetch band members
       const { data: membersData, error: membersError } = await supabase
         .from("profiles")
-        .select("id, name, email, role, created_at")
+        .select("id, name, email, role, created_at, user_id")
         .eq("band_id", id);
 
       if (membersError) throw membersError;
@@ -93,6 +133,62 @@ export default function BandDetail() {
       setLoading(false);
     }
   };
+
+  const handleAddMember = async () => {
+    if (!selectedUserId || !id) return;
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ band_id: id })
+        .eq("id", selectedUserId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Membro adicionado à banda",
+      });
+
+      setAddMemberOpen(false);
+      setSelectedUserId("");
+      fetchBandDetails();
+    } catch (error) {
+      console.error("Error adding member:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar membro",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ band_id: null })
+        .eq("id", memberId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Membro removido da banda",
+      });
+
+      fetchBandDetails();
+    } catch (error) {
+      console.error("Error removing member:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao remover membro",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isAdmin = userRole === "superuser" || userRole === "band_admin";
 
   if (loading) {
     return (
@@ -188,10 +284,55 @@ export default function BandDetail() {
                       {members.length} membro(s) na banda
                     </CardDescription>
                   </div>
-                  <Button className="flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Convidar Membro
-                  </Button>
+                  {isAdmin && (
+                    <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          className="flex items-center gap-2"
+                          onClick={fetchAvailableUsers}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          Adicionar Membro
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Adicionar Membro à Banda</DialogTitle>
+                          <DialogDescription>
+                            Selecione um usuário para adicionar à banda
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um usuário" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableUsers.map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.name} ({user.email})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setAddMemberOpen(false)}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            onClick={handleAddMember}
+                            disabled={!selectedUserId}
+                          >
+                            Adicionar
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -200,32 +341,50 @@ export default function BandDetail() {
                     Nenhum membro na banda
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Função</TableHead>
-                        <TableHead>Desde</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {members.map((member) => (
-                        <TableRow key={member.id}>
-                          <TableCell className="font-medium">{member.name}</TableCell>
-                          <TableCell>{member.email}</TableCell>
-                          <TableCell>
-                            <Badge variant={member.role === 'superuser' ? 'default' : 'secondary'}>
-                              {member.role === 'superuser' ? 'Admin' : 'Membro'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(member.joined_at).toLocaleDateString()}
-                          </TableCell>
+                  <div className="overflow-x-auto -mx-4 sm:mx-0">
+                    <Table className="min-w-[600px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Função</TableHead>
+                          <TableHead>Desde</TableHead>
+                          {isAdmin && <TableHead>Ações</TableHead>}
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {members.map((member) => (
+                          <TableRow key={member.id}>
+                            <TableCell className="font-medium">{member.name}</TableCell>
+                            <TableCell>{member.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={member.role === 'superuser' ? 'default' : member.role === 'band_admin' ? 'secondary' : 'outline'}>
+                                {member.role === 'superuser' ? 'Superuser' : member.role === 'band_admin' ? 'Admin' : 'Membro'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(member.joined_at).toLocaleDateString()}
+                            </TableCell>
+                            {isAdmin && (
+                              <TableCell>
+                                {member.role !== 'superuser' && member.user_id !== user?.id && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleRemoveMember(member.id)}
+                                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  >
+                                    <UserMinus className="h-4 w-4 mr-2" />
+                                    Remover
+                                  </Button>
+                                )}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
