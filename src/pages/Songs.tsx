@@ -278,7 +278,7 @@ export default function Songs() {
             <h1 className="text-3xl font-bold text-foreground">Músicas</h1>
             <p className="text-muted-foreground">Gerencie o repertório musical</p>
           </div>
-          {userRole === 'superuser' && (
+          {(userRole === 'superuser' || userRole === 'band_admin') && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={openCreateDialog} className="flex items-center gap-2 w-full sm:w-auto text-sm">
@@ -547,9 +547,9 @@ export default function Songs() {
                         {paginatedSongs.map((song) => (
                           <SongCard
                             key={song.id}
-                            song={song}
-                            onEdit={userRole === 'superuser' ? handleEdit : undefined}
-                            onDelete={userRole === 'superuser' ? handleDelete : undefined}
+                  song={song}
+                  onEdit={(userRole === 'superuser' || userRole === 'band_admin') ? handleEdit : undefined}
+                  onDelete={(userRole === 'superuser' || userRole === 'band_admin') ? handleDelete : undefined}
                           />
                         ))}
                       </div>

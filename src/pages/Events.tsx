@@ -712,9 +712,9 @@ export default function Events() {
                           <EventCard
                             key={event.id}
                             event={event}
-                            onEdit={userRole === 'superuser' ? handleEdit : undefined}
-                            onDelete={userRole === 'superuser' ? handleDelete : undefined}
-                            canManage={userRole === 'superuser'}
+                            onEdit={(userRole === 'superuser' || userRole === 'band_admin') ? handleEdit : undefined}
+                            onDelete={(userRole === 'superuser' || userRole === 'band_admin') ? handleDelete : undefined}
+                            canManage={(userRole === 'superuser' || userRole === 'band_admin')}
                           />
                         ))}
                       </div>
