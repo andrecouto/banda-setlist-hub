@@ -27,7 +27,12 @@ interface Song {
   last_played?: string;
   medleys?: Array<{
     event_name: string;
-    key_played: string | null;
+    event_id: string;
+    medley_group: number;
+    songs: Array<{
+      name: string;
+      key_played: string | null;
+    }>;
   }>;
 }
 
@@ -99,35 +104,74 @@ export default function Songs() {
 
   const fetchSongs = async () => {
     try {
-      // Fetch songs with usage statistics and medley information
+      // Fetch songs with usage statistics
       const { data: songsData, error: songsError } = await supabase
         .from("songs")
         .select(`
           *,
           event_songs!song_id(
             key_played,
-            events(name)
+            event_id,
+            medley_group,
+            is_medley,
+            events(name, id)
           )
         `)
         .order("name", { ascending: true });
 
       if (songsError) throw songsError;
 
-      // Transform data to include usage counts and medley info
-      const songsWithStats = songsData?.map(song => {
+      // For each song, fetch medley information
+      const songsWithStats = await Promise.all((songsData || []).map(async (song) => {
         const eventSongs = song.event_songs || [];
+        
+        // Get unique medleys (group by event_id and medley_group where is_medley is true)
+        const medleyGroups = eventSongs
+          .filter(es => es.is_medley && es.medley_group !== null)
+          .reduce((acc, es) => {
+            const key = `${es.event_id}-${es.medley_group}`;
+            if (!acc.has(key)) {
+              acc.set(key, {
+                event_name: es.events?.name || 'Evento desconhecido',
+                event_id: es.event_id,
+                medley_group: es.medley_group
+              });
+            }
+            return acc;
+          }, new Map());
+
+        // For each medley group, fetch all songs in that medley
+        const medleys = await Promise.all(
+          Array.from(medleyGroups.values()).map(async (group) => {
+            const { data: medleySongs } = await supabase
+              .from("event_songs")
+              .select(`
+                key_played,
+                songs(name)
+              `)
+              .eq("event_id", group.event_id)
+              .eq("medley_group", group.medley_group)
+              .order("song_order");
+
+            return {
+              event_name: group.event_name,
+              event_id: group.event_id,
+              medley_group: group.medley_group,
+              songs: (medleySongs || []).map(ms => ({
+                name: ms.songs?.name || 'Música desconhecida',
+                key_played: ms.key_played
+              }))
+            };
+          })
+        );
+
         return {
           ...song,
           usage_count: eventSongs.length,
-          medleys: eventSongs
-            .filter(es => es.key_played)
-            .map(es => ({
-              event_name: es.events?.name || 'Evento desconhecido',
-              key_played: es.key_played
-            })),
+          medleys,
           last_played: null
         };
-      }) || [];
+      }));
 
       setSongs(songsWithStats);
     } catch (error) {

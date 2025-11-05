@@ -16,7 +16,12 @@ interface SongCardProps {
     last_played?: string;
     medleys?: Array<{
       event_name: string;
-      key_played: string | null;
+      event_id: string;
+      medley_group: number;
+      songs: Array<{
+        name: string;
+        key_played: string | null;
+      }>;
     }>;
   };
   onEdit?: (song: any) => void;
@@ -86,12 +91,18 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
         
         {song.medleys && song.medleys.length > 0 && (
           <div className="mb-3">
-            <p className="text-sm font-medium mb-1">Tons tocados:</p>
-            <div className="flex flex-wrap gap-1">
+            <p className="text-sm font-medium mb-1">Medleys:</p>
+            <div className="space-y-2">
               {song.medleys.map((medley, idx) => (
-                <Badge key={idx} variant="outline" className="text-xs">
-                  {medley.key_played} ({medley.event_name})
-                </Badge>
+                <div key={idx} className="text-xs">
+                  <div className="flex flex-wrap gap-1">
+                    {medley.songs.map((medleySong, songIdx) => (
+                      <Badge key={songIdx} variant="outline" className="text-xs">
+                        {medleySong.name} {medleySong.key_played && `(${medleySong.key_played})`}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
