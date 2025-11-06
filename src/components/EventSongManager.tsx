@@ -6,9 +6,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Music, Trash2, X } from "lucide-react";
+import { Plus, Music, X, Link } from "lucide-react";
 
 interface Song {
   id: string;
@@ -21,6 +22,8 @@ interface EventSong {
   song_id: string;
   song_order: number;
   key_played: string | null;
+  is_medley?: boolean;
+  medley_group?: number | null;
   song: Song;
 }
 
@@ -38,6 +41,7 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
   const [isCreateSongOpen, setIsCreateSongOpen] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState("");
   const [keyPlayed, setKeyPlayed] = useState("");
+  const [isMedley, setIsMedley] = useState(false);
   const [newSongData, setNewSongData] = useState({ name: "", key: "" });
 
   useEffect(() => {
@@ -62,16 +66,35 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
     const selectedSong = songs.find(s => s.id === selectedSongId);
     if (!selectedSong) return;
 
+    // Determine medley group if this is a medley song
+    let medleyGroup = null;
+    if (isMedley) {
+      // Find the highest medley group number, or use 1 if none exist
+      const existingGroups = eventSongs
+        .filter(s => s.is_medley && s.medley_group !== null)
+        .map(s => s.medley_group as number);
+      medleyGroup = existingGroups.length > 0 ? Math.max(...existingGroups) : 1;
+      
+      // If the last song is a medley, use its group. Otherwise, create a new group.
+      const lastSong = eventSongs[eventSongs.length - 1];
+      if (!lastSong || !lastSong.is_medley) {
+        medleyGroup = (existingGroups.length > 0 ? Math.max(...existingGroups) : 0) + 1;
+      }
+    }
+
     const newEventSong: EventSong = {
       song_id: selectedSongId,
       song_order: eventSongs.length + 1,
       key_played: keyPlayed || null,
+      is_medley: isMedley,
+      medley_group: medleyGroup,
       song: selectedSong
     };
 
     onSongsChange([...eventSongs, newEventSong]);
     setSelectedSongId("");
     setKeyPlayed("");
+    setIsMedley(false);
     setIsDialogOpen(false);
   };
 
@@ -90,10 +113,26 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
 
       if (error) throw error;
 
+      // Determine medley group if this is a medley song
+      let medleyGroup = null;
+      if (isMedley) {
+        const existingGroups = eventSongs
+          .filter(s => s.is_medley && s.medley_group !== null)
+          .map(s => s.medley_group as number);
+        medleyGroup = existingGroups.length > 0 ? Math.max(...existingGroups) : 1;
+        
+        const lastSong = eventSongs[eventSongs.length - 1];
+        if (!lastSong || !lastSong.is_medley) {
+          medleyGroup = (existingGroups.length > 0 ? Math.max(...existingGroups) : 0) + 1;
+        }
+      }
+
       const newEventSong: EventSong = {
         song_id: data.id,
         song_order: eventSongs.length + 1,
         key_played: keyPlayed || null,
+        is_medley: isMedley,
+        medley_group: medleyGroup,
         song: data
       };
 
@@ -101,6 +140,7 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
       setSongs([...songs, data]);
       setNewSongData({ name: "", key: "" });
       setKeyPlayed("");
+      setIsMedley(false);
       setIsCreateSongOpen(false);
       
       toast({ title: "Sucesso", description: "Música criada e adicionada ao evento!" });
@@ -187,6 +227,16 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
                       placeholder="Ex: C, D, G#"
                     />
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="is_medley"
+                      checked={isMedley}
+                      onCheckedChange={(checked) => setIsMedley(checked as boolean)}
+                    />
+                    <Label htmlFor="is_medley" className="text-sm cursor-pointer">
+                      Parte de um medley
+                    </Label>
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <Button
                       type="button"
@@ -249,6 +299,16 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
                       placeholder="Ex: C, D, G#"
                     />
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="new_is_medley"
+                      checked={isMedley}
+                      onCheckedChange={(checked) => setIsMedley(checked as boolean)}
+                    />
+                    <Label htmlFor="new_is_medley" className="text-sm cursor-pointer">
+                      Parte de um medley
+                    </Label>
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <Button
                       type="button"
@@ -280,14 +340,25 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
       ) : (
         <div className="space-y-2">
           {eventSongs.map((eventSong, index) => (
-            <Card key={`${eventSong.song_id}-${index}`} className="p-3">
+            <Card 
+              key={`${eventSong.song_id}-${index}`} 
+              className={`p-3 ${eventSong.is_medley ? 'border-l-4 border-l-primary' : ''}`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Badge variant="secondary" className="text-xs">
                     {eventSong.song_order}
                   </Badge>
                   <div>
-                    <p className="font-medium text-sm">{eventSong.song.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm">{eventSong.song.name}</p>
+                      {eventSong.is_medley && (
+                        <Badge variant="outline" className="text-xs">
+                          <Link className="h-3 w-3 mr-1" />
+                          Medley
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex gap-2 text-xs text-muted-foreground">
                       {eventSong.song.key && (
                         <span>Original: {eventSong.song.key}</span>
