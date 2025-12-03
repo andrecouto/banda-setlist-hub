@@ -42,7 +42,17 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
   const [selectedSongId, setSelectedSongId] = useState("");
   const [keyPlayed, setKeyPlayed] = useState("");
   const [isMedley, setIsMedley] = useState(false);
+  const [selectedMedleyGroup, setSelectedMedleyGroup] = useState<string>("new");
   const [newSongData, setNewSongData] = useState({ name: "", key: "" });
+
+  // Get existing medley groups
+  const existingMedleyGroups = Array.from(
+    new Set(
+      eventSongs
+        .filter(s => s.is_medley && s.medley_group !== null)
+        .map(s => s.medley_group as number)
+    )
+  ).sort((a, b) => a - b);
 
   useEffect(() => {
     fetchSongs();
@@ -69,16 +79,11 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
     // Determine medley group if this is a medley song
     let medleyGroup = null;
     if (isMedley) {
-      // Find the highest medley group number, or use 1 if none exist
-      const existingGroups = eventSongs
-        .filter(s => s.is_medley && s.medley_group !== null)
-        .map(s => s.medley_group as number);
-      medleyGroup = existingGroups.length > 0 ? Math.max(...existingGroups) : 1;
-      
-      // If the last song is a medley, use its group. Otherwise, create a new group.
-      const lastSong = eventSongs[eventSongs.length - 1];
-      if (!lastSong || !lastSong.is_medley) {
-        medleyGroup = (existingGroups.length > 0 ? Math.max(...existingGroups) : 0) + 1;
+      if (selectedMedleyGroup === "new") {
+        const maxGroup = existingMedleyGroups.length > 0 ? Math.max(...existingMedleyGroups) : 0;
+        medleyGroup = maxGroup + 1;
+      } else {
+        medleyGroup = parseInt(selectedMedleyGroup, 10);
       }
     }
 
@@ -92,10 +97,11 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
     };
 
     onSongsChange([...eventSongs, newEventSong]);
-    setSelectedSongId("");
-    setKeyPlayed("");
-    setIsMedley(false);
-    setIsDialogOpen(false);
+      setSelectedSongId("");
+      setKeyPlayed("");
+      setIsMedley(false);
+      setSelectedMedleyGroup("new");
+      setIsDialogOpen(false);
   };
 
   const handleCreateAndAddSong = async () => {
@@ -116,14 +122,11 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
       // Determine medley group if this is a medley song
       let medleyGroup = null;
       if (isMedley) {
-        const existingGroups = eventSongs
-          .filter(s => s.is_medley && s.medley_group !== null)
-          .map(s => s.medley_group as number);
-        medleyGroup = existingGroups.length > 0 ? Math.max(...existingGroups) : 1;
-        
-        const lastSong = eventSongs[eventSongs.length - 1];
-        if (!lastSong || !lastSong.is_medley) {
-          medleyGroup = (existingGroups.length > 0 ? Math.max(...existingGroups) : 0) + 1;
+        if (selectedMedleyGroup === "new") {
+          const maxGroup = existingMedleyGroups.length > 0 ? Math.max(...existingMedleyGroups) : 0;
+          medleyGroup = maxGroup + 1;
+        } else {
+          medleyGroup = parseInt(selectedMedleyGroup, 10);
         }
       }
 
@@ -141,6 +144,7 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
       setNewSongData({ name: "", key: "" });
       setKeyPlayed("");
       setIsMedley(false);
+      setSelectedMedleyGroup("new");
       setIsCreateSongOpen(false);
       
       toast({ title: "Sucesso", description: "Música criada e adicionada ao evento!" });
@@ -227,15 +231,42 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
                       placeholder="Ex: C, D, G#"
                     />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="is_medley"
-                      checked={isMedley}
-                      onCheckedChange={(checked) => setIsMedley(checked as boolean)}
-                    />
-                    <Label htmlFor="is_medley" className="text-sm cursor-pointer">
-                      Parte de um medley
-                    </Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="is_medley"
+                        checked={isMedley}
+                        onCheckedChange={(checked) => {
+                          setIsMedley(checked as boolean);
+                          if (!checked) setSelectedMedleyGroup("new");
+                        }}
+                      />
+                      <Label htmlFor="is_medley" className="text-sm cursor-pointer">
+                        Parte de um medley
+                      </Label>
+                    </div>
+                    {isMedley && (
+                      <div>
+                        <Label htmlFor="medley_group">Grupo do Medley</Label>
+                        <Select value={selectedMedleyGroup} onValueChange={setSelectedMedleyGroup}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o grupo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="new">Novo Medley</SelectItem>
+                            {existingMedleyGroups.map((group) => {
+                              const songsInGroup = eventSongs.filter(s => s.medley_group === group);
+                              const groupLabel = songsInGroup.map(s => s.song.name).join(" + ");
+                              return (
+                                <SelectItem key={group} value={group.toString()}>
+                                  Medley {group}: {groupLabel || "Vazio"}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button
@@ -299,15 +330,42 @@ export function EventSongManager({ eventId, eventSongs, onSongsChange, disabled 
                       placeholder="Ex: C, D, G#"
                     />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="new_is_medley"
-                      checked={isMedley}
-                      onCheckedChange={(checked) => setIsMedley(checked as boolean)}
-                    />
-                    <Label htmlFor="new_is_medley" className="text-sm cursor-pointer">
-                      Parte de um medley
-                    </Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="new_is_medley"
+                        checked={isMedley}
+                        onCheckedChange={(checked) => {
+                          setIsMedley(checked as boolean);
+                          if (!checked) setSelectedMedleyGroup("new");
+                        }}
+                      />
+                      <Label htmlFor="new_is_medley" className="text-sm cursor-pointer">
+                        Parte de um medley
+                      </Label>
+                    </div>
+                    {isMedley && (
+                      <div>
+                        <Label htmlFor="new_medley_group">Grupo do Medley</Label>
+                        <Select value={selectedMedleyGroup} onValueChange={setSelectedMedleyGroup}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o grupo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="new">Novo Medley</SelectItem>
+                            {existingMedleyGroups.map((group) => {
+                              const songsInGroup = eventSongs.filter(s => s.medley_group === group);
+                              const groupLabel = songsInGroup.map(s => s.song.name).join(" + ");
+                              return (
+                                <SelectItem key={group} value={group.toString()}>
+                                  Medley {group}: {groupLabel || "Vazio"}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button
