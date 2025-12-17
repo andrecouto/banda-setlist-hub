@@ -17,10 +17,13 @@ import { EventCard } from "@/components/EventCard";
 import { EventSongManager } from "@/components/EventSongManager";
 import { Plus, Calendar, Users, Music, Search, Filter, X } from "lucide-react";
 
+type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
+
 interface Event {
   id: string;
   name: string;
   event_date: string;
+  event_type: EventType;
   notes: string | null;
   youtube_link: string | null;
   band_id: string;
@@ -81,6 +84,7 @@ export default function Events() {
   const [formData, setFormData] = useState({
     name: "",
     event_date: "",
+    event_type: "culto_domingo" as EventType,
     notes: "",
     youtube_link: "",
     band_id: "",
@@ -196,9 +200,22 @@ export default function Events() {
     }
   };
 
+  const getEventName = (eventType: EventType, customName: string) => {
+    switch (eventType) {
+      case 'culto_domingo':
+        return 'Culto Domingo';
+      case 'culto_quarta':
+        return 'Culto Quarta';
+      case 'especial':
+        return customName.trim() || 'Culto Especial';
+      default:
+        return 'Evento';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.event_date || !formData.band_id) return;
+    if (!formData.event_date || !formData.band_id) return;
 
     try {
       // Convert local date to UTC to avoid timezone issues
@@ -206,8 +223,9 @@ export default function Events() {
       const utcDate = localDate.toISOString().split('T')[0];
 
       const eventData = {
-        name: formData.name,
+        name: getEventName(formData.event_type, formData.name),
         event_date: utcDate,
+        event_type: formData.event_type,
         notes: formData.notes || null,
         youtube_link: formData.youtube_link || null,
         band_id: formData.band_id,
@@ -262,6 +280,7 @@ export default function Events() {
       setFormData({
         name: "",
         event_date: "",
+        event_type: "culto_domingo",
         notes: "",
         youtube_link: "",
         band_id: "",
@@ -311,8 +330,9 @@ export default function Events() {
   const handleEdit = async (event: Event) => {
     setEditingEvent(event);
     setFormData({
-      name: event.name,
+      name: event.event_type === 'especial' ? event.name : "",
       event_date: event.event_date,
+      event_type: event.event_type || "culto_domingo",
       notes: event.notes || "",
       youtube_link: event.youtube_link || "",
       band_id: event.band_id,
@@ -346,6 +366,7 @@ export default function Events() {
     setFormData({
       name: "",
       event_date: "",
+      event_type: "culto_domingo",
       notes: "",
       youtube_link: "",
       band_id: "",
@@ -473,17 +494,36 @@ export default function Events() {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Nome</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                  <Label htmlFor="event_type">Tipo de Evento</Label>
+                  <Select
+                    value={formData.event_type}
+                    onValueChange={(value: EventType) =>
+                      setFormData((prev) => ({ ...prev, event_type: value, name: "" }))
                     }
-                    placeholder="Nome do evento"
-                    required
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="culto_domingo">Culto Domingo</SelectItem>
+                      <SelectItem value="culto_quarta">Culto Quarta</SelectItem>
+                      <SelectItem value="especial">Especial</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                {formData.event_type === 'especial' && (
+                  <div>
+                    <Label htmlFor="name">Nome do Evento (opcional)</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, name: e.target.value }))
+                      }
+                      placeholder="Ex: Culto de Páscoa (deixe vazio para 'Culto Especial')"
+                    />
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="event_date">Data</Label>
                   <Input

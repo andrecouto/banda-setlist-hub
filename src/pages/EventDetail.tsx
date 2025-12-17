@@ -15,10 +15,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft } from "lucide-react";
 
+type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
+
 interface Event {
   id: string;
   name: string;
   event_date: string;
+  event_type?: EventType;
   notes: string | null;
   youtube_link: string | null;
   bands: { name: string };
@@ -565,7 +568,14 @@ export default function EventDetail() {
           
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">{event.name}</h1>
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+                {event.name}
+                {event.event_type === 'especial' && (
+                  <Badge variant="destructive" className="bg-amber-500 hover:bg-amber-600">
+                    Especial
+                  </Badge>
+                )}
+              </h1>
               <div className="flex items-center gap-4 mt-2 text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
