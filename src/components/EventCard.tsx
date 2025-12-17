@@ -5,11 +5,14 @@ import { Calendar, Users, Music, Youtube, Edit, Trash, Eye } from "lucide-react"
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
+type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
+
 interface EventCardProps {
   event: {
     id: string;
     name: string;
     event_date: string;
+    event_type?: EventType;
     notes: string | null;
     youtube_link: string | null;
     bands: { name: string };
@@ -103,6 +106,11 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
               {event.profiles && (
                 <Badge variant="secondary" className="text-xs">
                   Líder: {event.profiles.name}
+                </Badge>
+              )}
+              {event.event_type === 'especial' && (
+                <Badge variant="destructive" className="text-xs bg-amber-500 hover:bg-amber-600">
+                  Especial
                 </Badge>
               )}
               {isUpcoming && (

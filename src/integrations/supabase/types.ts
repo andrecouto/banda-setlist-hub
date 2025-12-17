@@ -172,6 +172,7 @@ export type Database = {
           band_id: string
           created_at: string
           event_date: string
+          event_type: Database["public"]["Enums"]["event_type"]
           id: string
           leader_id: string | null
           name: string
@@ -183,6 +184,7 @@ export type Database = {
           band_id: string
           created_at?: string
           event_date: string
+          event_type?: Database["public"]["Enums"]["event_type"]
           id?: string
           leader_id?: string | null
           name: string
@@ -194,6 +196,7 @@ export type Database = {
           band_id?: string
           created_at?: string
           event_date?: string
+          event_type?: Database["public"]["Enums"]["event_type"]
           id?: string
           leader_id?: string | null
           name?: string
@@ -314,6 +317,7 @@ export type Database = {
       }
     }
     Enums: {
+      event_type: "culto_domingo" | "culto_quarta" | "especial"
       user_role: "superuser" | "band_member" | "band_admin"
     }
     CompositeTypes: {
@@ -442,6 +446,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      event_type: ["culto_domingo", "culto_quarta", "especial"],
       user_role: ["superuser", "band_member", "band_admin"],
     },
   },
