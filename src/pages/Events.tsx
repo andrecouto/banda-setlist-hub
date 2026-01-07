@@ -53,6 +53,8 @@ interface EventSong {
   song_id: string;
   song_order: number;
   key_played: string | null;
+  is_medley?: boolean;
+  medley_group?: number | null;
   song: {
     id: string;
     name: string;
@@ -268,6 +270,8 @@ export default function Events() {
           song_id: song.song_id,
           song_order: song.song_order,
           key_played: song.key_played,
+          is_medley: song.is_medley || false,
+          medley_group: song.medley_group || null,
         }));
 
         const { error: songsError } = await supabase
@@ -318,6 +322,8 @@ export default function Events() {
         song_id: item.song_id,
         song_order: item.song_order,
         key_played: item.key_played,
+        is_medley: item.is_medley || false,
+        medley_group: item.medley_group || null,
         song: item.songs as any
       }));
       
