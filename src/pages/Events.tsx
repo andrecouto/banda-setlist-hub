@@ -89,6 +89,7 @@ export default function Events() {
     event_type: "culto_domingo" as EventType,
     notes: "",
     youtube_link: "",
+    lyrics: "",
     band_id: "",
     leader_id: "none",
   });
@@ -230,6 +231,7 @@ export default function Events() {
         event_type: formData.event_type,
         notes: formData.notes || null,
         youtube_link: formData.youtube_link || null,
+        lyrics: formData.lyrics || null,
         band_id: formData.band_id,
         leader_id: formData.leader_id === "none" ? null : formData.leader_id,
       };
@@ -287,6 +289,7 @@ export default function Events() {
         event_type: "culto_domingo",
         notes: "",
         youtube_link: "",
+        lyrics: "",
         band_id: "",
         leader_id: "none",
       });
@@ -341,6 +344,7 @@ export default function Events() {
       event_type: event.event_type || "culto_domingo",
       notes: event.notes || "",
       youtube_link: event.youtube_link || "",
+      lyrics: (event as any).lyrics || "",
       band_id: event.band_id,
       leader_id: event.leader_id || "none",
     });
@@ -375,6 +379,7 @@ export default function Events() {
       event_type: "culto_domingo",
       notes: "",
       youtube_link: "",
+      lyrics: "",
       band_id: "",
       leader_id: "none",
     });
@@ -604,6 +609,18 @@ export default function Events() {
                       setFormData((prev) => ({ ...prev, notes: e.target.value }))
                     }
                     placeholder="Observações sobre o evento"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lyrics">Letra do Evento</Label>
+                  <Textarea
+                    id="lyrics"
+                    value={formData.lyrics}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, lyrics: e.target.value }))
+                    }
+                    placeholder="Cole aqui a letra completa conforme será tocada no evento..."
+                    className="min-h-[150px]"
                   />
                 </div>
                 

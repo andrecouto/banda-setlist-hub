@@ -24,6 +24,7 @@ interface Event {
   event_type?: EventType;
   notes: string | null;
   youtube_link: string | null;
+  lyrics: string | null;
   bands: { name: string };
 }
 
@@ -769,6 +770,22 @@ export default function EventDetail() {
             )}
           </CardContent>
         </Card>
+
+        {event.lyrics && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Letra do Evento</CardTitle>
+              <CardDescription>
+                Letra completa conforme será tocada
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <pre className="whitespace-pre-wrap font-sans text-sm text-foreground bg-muted/50 p-4 rounded-lg">
+                {event.lyrics}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
