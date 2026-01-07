@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
-import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft } from "lucide-react";
+import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft, Copy } from "lucide-react";
 
 type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
 
@@ -774,10 +774,28 @@ export default function EventDetail() {
         {event.lyrics && (
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Letra do Evento</CardTitle>
-              <CardDescription>
-                Letra completa conforme será tocada
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Letra do Evento</CardTitle>
+                  <CardDescription>
+                    Letra completa conforme será tocada
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(event.lyrics || "");
+                    toast({
+                      title: "Copiado!",
+                      description: "Letra copiada para a área de transferência.",
+                    });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <pre className="whitespace-pre-wrap font-sans text-sm text-foreground bg-muted/50 p-4 rounded-lg">
