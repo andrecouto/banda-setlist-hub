@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Music, Youtube, Edit, Trash, Eye } from "lucide-react";
+import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,6 +15,7 @@ interface EventCardProps {
     event_type?: EventType;
     notes: string | null;
     youtube_link: string | null;
+    lyrics?: string | null;
     bands: { name: string };
     profiles: { name: string } | null;
     songs?: { name: string; key_played: string | null }[];
@@ -198,6 +199,23 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
             }
           </div>
           <div className="flex gap-2">
+            {event.lyrics && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+                onClick={() => {
+                  navigator.clipboard.writeText(event.lyrics || "");
+                  toast({
+                    title: "Copiado!",
+                    description: "Letra copiada para a área de transferência.",
+                  });
+                }}
+              >
+                <Copy className="h-4 w-4" />
+                <span className="hidden sm:inline">Letras</span>
+              </Button>
+            )}
             <Link to={`/events/${event.id}`}>
               <Button variant="outline" size="sm" className="flex items-center gap-2">
                 <Eye className="h-4 w-4" />
