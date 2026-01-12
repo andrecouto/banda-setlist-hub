@@ -26,6 +26,7 @@ interface Event {
   event_type: EventType;
   notes: string | null;
   youtube_link: string | null;
+  lyrics: string | null;
   band_id: string;
   leader_id: string | null;
   bands: { name: string };
@@ -344,7 +345,7 @@ export default function Events() {
       event_type: event.event_type || "culto_domingo",
       notes: event.notes || "",
       youtube_link: event.youtube_link || "",
-      lyrics: (event as any).lyrics || "",
+      lyrics: event.lyrics || "",
       band_id: event.band_id,
       leader_id: event.leader_id || "none",
     });
