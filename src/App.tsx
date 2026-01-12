@@ -14,6 +14,7 @@ import Events from "./pages/Events";
 import Profile from "./pages/Profile";
 import EventDetail from "./pages/EventDetail";
 import Songs from "./pages/Songs";
+import Tags from "./pages/Tags";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 import Redirect from "./pages/Redirect";
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
               <Route path="/events/:id" element={<ProtectedRoute><EventDetail /></ProtectedRoute>} />
               <Route path="/songs" element={<ProtectedRoute><Songs /></ProtectedRoute>} />
+              <Route path="/tags" element={<ProtectedRoute><Tags /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/redirect" element={<ProtectedRoute><Redirect /></ProtectedRoute>} />
               <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
