@@ -209,7 +209,8 @@ export default function Tags() {
     setDialogOpen(true);
   };
 
-  const canManageTags = userRole === "superuser" || userRole === "band_admin";
+  // Todos os usuários autenticados podem gerenciar tags
+  const canManageTags = !!user;
 
   if (loading) {
     return (
