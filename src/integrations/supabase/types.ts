@@ -268,6 +268,42 @@ export type Database = {
           },
         ]
       }
+      song_tags: {
+        Row: {
+          created_at: string
+          id: string
+          song_id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          song_id: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          song_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "song_tags_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "song_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       songs: {
         Row: {
           author: string | null
@@ -298,6 +334,30 @@ export type Database = {
           lyrics?: string | null
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }

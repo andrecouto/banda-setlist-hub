@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Music, Calendar, Users, LogOut, User, Home } from "lucide-react";
+import { Music, Calendar, Users, LogOut, User, Home, Tag } from "lucide-react";
 
 export function Navigation() {
   const { signOut, user } = useAuth();
@@ -17,6 +17,7 @@ export function Navigation() {
     { path: "/bands", label: "Bandas", icon: Users },
     { path: "/events", label: "Eventos", icon: Calendar },
     { path: "/songs", label: "Músicas", icon: Music },
+    { path: "/tags", label: "Tags", icon: Tag },
   ];
 
   return (
