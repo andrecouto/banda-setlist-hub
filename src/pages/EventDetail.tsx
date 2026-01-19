@@ -558,18 +558,19 @@ export default function EventDetail() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 md:p-6">
         <div className="mb-6">
           <Link to="/events">
-            <Button variant="outline" className="mb-4">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Voltar aos Eventos
+            <Button variant="outline" size="sm" className="mb-4">
+              <ChevronLeft className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Voltar aos Eventos</span>
+              <span className="sm:hidden">Voltar</span>
             </Button>
           </Link>
           
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+            <div className="w-full md:w-auto">
+              <h1 className="text-xl md:text-3xl font-bold text-foreground flex flex-wrap items-center gap-2">
                 {event.name}
                 {event.event_type === 'especial' && (
                   <Badge variant="destructive" className="bg-amber-500 hover:bg-amber-600">
@@ -577,7 +578,7 @@ export default function EventDetail() {
                   </Badge>
                 )}
               </h1>
-              <div className="flex items-center gap-4 mt-2 text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-2 text-muted-foreground text-sm">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
                   {new Date(event.event_date + 'T00:00:00').toLocaleDateString()}
@@ -599,18 +600,37 @@ export default function EventDetail() {
                 )}
               </div>
               {event.notes && (
-                <p className="mt-2 text-muted-foreground">{event.notes}</p>
+                <p className="mt-2 text-sm md:text-base text-muted-foreground">{event.notes}</p>
               )}
             </div>
 
               
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                {event.lyrics && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => {
+                      navigator.clipboard.writeText(event.lyrics || "");
+                      toast({
+                        title: "Copiado!",
+                        description: "Letra copiada para a área de transferência.",
+                      });
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                    <span className="hidden sm:inline">Copiar Letras</span>
+                    <span className="sm:hidden">Letras</span>
+                  </Button>
+                )}
                 {(userRole === 'superuser' || userRole === 'band_admin') && (
                 <Dialog open={isAddSongDialogOpen} onOpenChange={setIsAddSongDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button className="flex items-center gap-2">
+                    <Button size="sm" className="flex items-center gap-1 md:gap-2">
                       <Plus className="h-4 w-4" />
-                      Adicionar Música
+                      <span className="hidden sm:inline">Adicionar Música</span>
+                      <span className="sm:hidden">Música</span>
                     </Button>
                   </DialogTrigger>
               <DialogContent>
@@ -688,11 +708,11 @@ export default function EventDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Setlist</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-2 md:pb-4">
+              <CardTitle className="text-lg md:text-xl">Setlist</CardTitle>
+              <CardDescription className="text-sm">
                 {eventSongs.length} música(s) no evento
                 {medleyGroups.length > 0 && ` • ${medleyGroups.length} medley(s)`}
               </CardDescription>
@@ -700,63 +720,75 @@ export default function EventDetail() {
           <CardContent>
             {eventSongs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhuma música adicionada ao setlist</p>
-                <p className="text-sm">Clique em "Adicionar Música" para começar</p>
+                <Music className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm md:text-base">Nenhuma música adicionada ao setlist</p>
+                <p className="text-xs md:text-sm">Clique em "Adicionar Música" para começar</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">#</TableHead>
-                    <TableHead>Música</TableHead>
-                    <TableHead>Tom</TableHead>
-                    <TableHead>Medley</TableHead>
-                    <TableHead className="w-32">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {eventSongs.map((eventSong, index) => (
-                    <TableRow key={eventSong.id}>
-                      <TableCell className="font-medium">
-                        {eventSong.song_order}
-                      </TableCell>
-                      <TableCell>{eventSong.songs.name}</TableCell>
-                      <TableCell>
-                        {eventSong.key_played || eventSong.songs.key || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {eventSong.is_medley && (
-                          <Badge variant="secondary">
-                            Medley {eventSong.medley_group}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {(userRole === 'superuser' || userRole === 'band_admin') ? (
-                          <div className="flex gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => moveUp(index)}
-                              disabled={index === 0}
-                            >
-                              <ArrowUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => moveDown(index)}
-                              disabled={index === eventSongs.length - 1}
-                            >
-                              <ArrowDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeSongFromEvent(eventSong.id)}
-                            >
-                              <Trash className="h-4 w-4" />
+              <div className="overflow-x-auto -mx-4 md:mx-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10 md:w-16">#</TableHead>
+                      <TableHead>Música</TableHead>
+                      <TableHead className="hidden sm:table-cell">Tom</TableHead>
+                      <TableHead className="hidden md:table-cell">Medley</TableHead>
+                      <TableHead className="w-24 md:w-32">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {eventSongs.map((eventSong, index) => (
+                      <TableRow key={eventSong.id}>
+                        <TableCell className="font-medium text-sm">
+                          {eventSong.song_order}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          <div>
+                            {eventSong.songs.name}
+                            <div className="sm:hidden text-xs text-muted-foreground">
+                              Tom: {eventSong.key_played || eventSong.songs.key || "-"}
+                              {eventSong.is_medley && ` • Medley ${eventSong.medley_group}`}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-sm">
+                          {eventSong.key_played || eventSong.songs.key || "-"}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {eventSong.is_medley && (
+                            <Badge variant="secondary" className="text-xs">
+                              Medley {eventSong.medley_group}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {(userRole === 'superuser' || userRole === 'band_admin') ? (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-7 p-0 md:h-8 md:w-8"
+                                onClick={() => moveUp(index)}
+                                disabled={index === 0}
+                              >
+                                <ArrowUp className="h-3 w-3 md:h-4 md:w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-7 p-0 md:h-8 md:w-8"
+                                onClick={() => moveDown(index)}
+                                disabled={index === eventSongs.length - 1}
+                              >
+                                <ArrowDown className="h-3 w-3 md:h-4 md:w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-7 p-0 md:h-8 md:w-8"
+                                onClick={() => removeSongFromEvent(eventSong.id)}
+                              >
+                                <Trash className="h-3 w-3 md:h-4 md:w-4" />
                             </Button>
                           </div>
                         ) : (
@@ -767,6 +799,7 @@ export default function EventDetail() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

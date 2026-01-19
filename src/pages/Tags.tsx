@@ -228,11 +228,11 @@ export default function Tags() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <main className="container mx-auto px-4 py-6 md:py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Tags</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Tags</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
               Gerencie as tags para organizar suas músicas
             </p>
           </div>

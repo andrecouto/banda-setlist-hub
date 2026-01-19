@@ -125,7 +125,15 @@ export default function Events() {
       const { data, error } = await supabase
         .from("events")
         .select(`
-          *,
+          id,
+          name,
+          event_date,
+          event_type,
+          notes,
+          youtube_link,
+          lyrics,
+          band_id,
+          leader_id,
           bands(name),
           profiles(name),
           event_songs(
