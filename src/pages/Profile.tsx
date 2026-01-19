@@ -147,13 +147,13 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 md:p-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Meu Perfil</h1>
-          <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Meu Perfil</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Gerencie suas informações pessoais</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>

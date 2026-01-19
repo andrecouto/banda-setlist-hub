@@ -316,11 +316,11 @@ export default function Songs() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Músicas</h1>
-            <p className="text-muted-foreground">Gerencie o repertório musical</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Músicas</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Gerencie o repertório musical</p>
           </div>
           {(userRole === 'superuser' || userRole === 'band_admin') && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

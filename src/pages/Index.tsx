@@ -48,22 +48,43 @@ const Index = () => {
     if (!userProfile) return;
     
     try {
-      if (userProfile.role === 'superuser') {
-        // Admin sees all stats
-        const [bandsResult, eventsResult, songsResult, thisMonthResult] = await Promise.all([
+      if (userProfile.role === 'superuser' || userProfile.role === 'band_admin') {
+        // Admin sees all stats + top songs of all time
+        const [bandsResult, eventsResult, songsResult, thisMonthResult, topSongsData] = await Promise.all([
           supabase.from('bands').select('*', { count: 'exact', head: true }),
           supabase.from('events').select('*', { count: 'exact', head: true }),
           supabase.from('songs').select('*', { count: 'exact', head: true }),
           supabase.from('events').select('*', { count: 'exact', head: true })
-            .gte('event_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
+            .gte('event_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]),
+          supabase.from('event_songs').select(`
+            song_id,
+            songs:song_id(name, key)
+          `)
         ]);
+
+        // Count song occurrences for top songs of all time
+        const songCounts = (topSongsData.data || []).reduce((acc: any, item: any) => {
+          const songId = item.song_id;
+          if (!acc[songId]) {
+            acc[songId] = {
+              song: item.songs,
+              count: 0
+            };
+          }
+          acc[songId].count++;
+          return acc;
+        }, {});
+
+        const topSongs = Object.values(songCounts)
+          .sort((a: any, b: any) => b.count - a.count)
+          .slice(0, 5);
 
         setStats({
           totalBands: bandsResult.count || 0,
           totalEvents: eventsResult.count || 0,
           totalSongs: songsResult.count || 0,
           thisMonthEvents: thisMonthResult.count || 0,
-          topSongs: []
+          topSongs
         });
       } else {
         // Regular user sees current month's top songs
@@ -161,32 +182,77 @@ const Index = () => {
         </div>
 
         {/* Statistics Cards */}
-        {userProfile?.role === 'superuser' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatsCard
-              title="Total de Bandas"
-              value={stats.totalBands}
-              description="Bandas cadastradas no sistema"
-              icon={Users}
-            />
-            <StatsCard
-              title="Total de Eventos"
-              value={stats.totalEvents}
-              description="Eventos já realizados"
-              icon={Calendar}
-            />
-            <StatsCard
-              title="Total de Músicas"
-              value={stats.totalSongs}
-              description="Músicas no repertório"
-              icon={Music}
-            />
-            <StatsCard
-              title="Eventos Este Mês"
-              value={stats.thisMonthEvents}
-              description={`Eventos realizados em ${new Date().toLocaleString('pt-BR', { month: 'long' })}`}
-              icon={TrendingUp}
-            />
+        {(userProfile?.role === 'superuser' || userProfile?.role === 'band_admin') ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+              <StatsCard
+                title="Total de Bandas"
+                value={stats.totalBands}
+                description="Bandas cadastradas no sistema"
+                icon={Users}
+              />
+              <StatsCard
+                title="Total de Eventos"
+                value={stats.totalEvents}
+                description="Eventos já realizados"
+                icon={Calendar}
+              />
+              <StatsCard
+                title="Total de Músicas"
+                value={stats.totalSongs}
+                description="Músicas no repertório"
+                icon={Music}
+              />
+              <StatsCard
+                title="Eventos Este Mês"
+                value={stats.thisMonthEvents}
+                description={`Eventos realizados em ${new Date().toLocaleString('pt-BR', { month: 'long' })}`}
+                icon={TrendingUp}
+              />
+            </div>
+            
+            {/* Top songs of all time for admins */}
+            <Card className="card-glass">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                  <BarChart3 className="h-5 w-5" />
+                  Músicas Mais Tocadas (Geral)
+                </CardTitle>
+                <CardDescription>
+                  Ranking de todas as músicas já tocadas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {stats.topSongs.length > 0 ? (
+                  <div className="space-y-3 md:space-y-4">
+                    {stats.topSongs.map((item: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-2 md:gap-3">
+                          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs md:text-sm font-bold text-primary">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm md:text-base">{item.song.name}</p>
+                            {item.song.key && (
+                              <p className="text-xs md:text-sm text-muted-foreground">Tom: {item.song.key}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-primary text-sm md:text-base">{item.count}x</p>
+                          <p className="text-xs text-muted-foreground">tocadas</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhuma música tocada ainda</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <div className="space-y-6">
