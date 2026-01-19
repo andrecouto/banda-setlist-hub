@@ -13,7 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { SongCard } from "@/components/SongCard";
-import { Plus, Search, Grid, List, Filter, Music, Users } from "lucide-react";
+import { Plus, Search, Grid, List, Filter, Music, Users, Tag } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface Song {
   id: string;
@@ -41,11 +42,19 @@ interface Band {
   name: string;
 }
 
+interface TagItem {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export default function Songs() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [songs, setSongs] = useState<Song[]>([]);
   const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
+  const [tags, setTags] = useState<TagItem[]>([]);
+  const [songTags, setSongTags] = useState<{ song_id: string; tag_id: string }[]>([]);
   const [bands, setBands] = useState<Band[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -53,6 +62,7 @@ export default function Songs() {
   const [formData, setFormData] = useState({ name: "", key: "", author: "", lyrics: "", chord_chart: "" });
   const [searchTerm, setSearchTerm] = useState("");
   const [keyFilter, setKeyFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
   const [bandFilter, setBandFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'name' | 'key' | 'recent' | 'popular'>('name');
@@ -63,13 +73,15 @@ export default function Songs() {
   useEffect(() => {
     fetchSongs();
     fetchBands();
+    fetchTags();
+    fetchSongTags();
     fetchUserRole();
   }, []);
 
   useEffect(() => {
     filterAndSortSongs();
     setCurrentPage(1);
-  }, [songs, searchTerm, keyFilter, bandFilter, sortBy]);
+  }, [songs, searchTerm, keyFilter, tagFilter, bandFilter, sortBy, songTags]);
 
   const fetchUserRole = async () => {
     if (!user) return;
@@ -85,6 +97,33 @@ export default function Songs() {
       setUserRole(data.role);
     } catch (error) {
       console.error("Error fetching user role:", error);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("tags")
+        .select("id, name, color")
+        .order("name");
+
+      if (error) throw error;
+      setTags(data || []);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  };
+
+  const fetchSongTags = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("song_tags")
+        .select("song_id, tag_id");
+
+      if (error) throw error;
+      setSongTags(data || []);
+    } catch (error) {
+      console.error("Error fetching song tags:", error);
     }
   };
 
@@ -190,7 +229,8 @@ export default function Songs() {
     let filtered = songs.filter(song => {
       const matchesSearch = song.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesKey = keyFilter === "all" || song.key === keyFilter;
-      return matchesSearch && matchesKey;
+      const matchesTag = tagFilter === "all" || songTags.some(st => st.song_id === song.id && st.tag_id === tagFilter);
+      return matchesSearch && matchesKey && matchesTag;
     });
 
     // Sort songs
@@ -444,6 +484,27 @@ export default function Songs() {
                     <SelectItem value="all">Todos</SelectItem>
                     {getUniqueKeys().map(key => (
                       <SelectItem key={key} value={key!}>{key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={tagFilter} onValueChange={setTagFilter}>
+                  <SelectTrigger className="w-[130px] sm:w-36">
+                    <Tag className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas Tags</SelectItem>
+                    {tags.map(tag => (
+                      <SelectItem key={tag.id} value={tag.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          {tag.name}
+                        </div>
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
