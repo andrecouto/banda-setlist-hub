@@ -99,35 +99,35 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
                 day: 'numeric'
               })}
             </CardDescription>
-            <div className="flex gap-2 mt-2">
-              <Badge variant="outline" className="text-xs">
+            <div className="flex flex-wrap gap-1 mt-2">
+              <Badge variant="outline" className="text-[10px] sm:text-xs">
                 <Users className="h-3 w-3 mr-1" />
                 {event.bands.name}
               </Badge>
               {event.profiles && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-[10px] sm:text-xs">
                   Líder: {event.profiles.name}
                 </Badge>
               )}
               {event.event_type === 'especial' && (
-                <Badge variant="destructive" className="text-xs bg-amber-500 hover:bg-amber-600">
+                <Badge variant="destructive" className="text-[10px] sm:text-xs bg-amber-500 hover:bg-amber-600">
                   Especial
                 </Badge>
               )}
               {isUpcoming && (
-                <Badge variant="default" className="text-xs">
+                <Badge variant="default" className="text-[10px] sm:text-xs">
                   Próximo
                 </Badge>
               )}
               {isPast && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-[10px] sm:text-xs">
                   Realizado
                 </Badge>
               )}
               {event.youtube_link && (
-                <Badge variant="destructive" className="text-xs">
+                <Badge variant="destructive" className="text-[10px] sm:text-xs">
                   <Youtube className="h-3 w-3 mr-1" />
-                  YouTube
+                  YT
                 </Badge>
               )}
             </div>
@@ -191,19 +191,19 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
           </div>
         )}
         
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-2">
           <div className="text-xs text-muted-foreground">
             {isUpcoming 
               ? `Em ${Math.ceil((eventDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dias`
               : `Há ${Math.floor((new Date().getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24))} dias`
             }
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 flex-wrap">
             {event.lyrics && (
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 h-7 px-2 text-xs sm:h-8 sm:px-3"
                 onClick={() => {
                   navigator.clipboard.writeText(event.lyrics || "");
                   toast({
@@ -212,14 +212,14 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
                   });
                 }}
               >
-                <Copy className="h-4 w-4" />
+                <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Letras</span>
               </Button>
             )}
             <Link to={`/events/${event.id}`}>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                Ver Detalhes
+              <Button variant="outline" size="sm" className="flex items-center gap-1 h-7 px-2 text-xs sm:h-8 sm:px-3">
+                <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Ver </span>Detalhes
               </Button>
             </Link>
           </div>
