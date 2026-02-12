@@ -580,11 +580,6 @@ export default function Events() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {userRole !== 'superuser' && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Apenas administradores podem alterar a banda
-                    </p>
-                  )}
                 </div>
                 <div>
                   <Label htmlFor="leader_id">Líder</Label>
