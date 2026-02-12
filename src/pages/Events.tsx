@@ -670,8 +670,8 @@ export default function Events() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="sm:col-span-2 lg:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="sm:col-span-2">
                   <Input
                     placeholder="Buscar eventos..."
                     value={searchTerm}
@@ -679,32 +679,32 @@ export default function Events() {
                     className="w-full"
                   />
                 </div>
-                  <Select value={selectedBand} onValueChange={setSelectedBand}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filtrar por banda" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as bandas</SelectItem>
-                      {bands.map((band) => (
-                        <SelectItem key={band.id} value={band.id}>
-                          {band.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={selectedSong} onValueChange={setSelectedSong}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filtrar por música" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as músicas</SelectItem>
-                      {songs.map((song) => (
-                        <SelectItem key={song.id} value={song.id}>
-                          {song.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <Select value={selectedBand} onValueChange={setSelectedBand}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por banda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as bandas</SelectItem>
+                    {bands.map((band) => (
+                      <SelectItem key={band.id} value={band.id}>
+                        {band.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedSong} onValueChange={setSelectedSong}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por música" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as músicas</SelectItem>
+                    {songs.map((song) => (
+                      <SelectItem key={song.id} value={song.id}>
+                        {song.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button 
                   variant="outline" 
                   onClick={() => {
@@ -714,10 +714,10 @@ export default function Events() {
                     setStartDate("");
                     setEndDate("");
                   }}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 sm:col-span-2"
                 >
                   <X className="h-4 w-4" />
-                  Limpar
+                  Limpar Filtros
                 </Button>
               </div>
               
@@ -747,20 +747,21 @@ export default function Events() {
           </Card>
 
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">
-                {showUpcoming ? `Próximos Eventos (${upcomingEvents.length})` : `Eventos Passados (${pastEvents.length})`}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-semibold">
+                {showUpcoming ? `Próximos (${upcomingEvents.length})` : `Passados (${pastEvents.length})`}
               </h2>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => {
                   setShowUpcoming(!showUpcoming);
                   setCurrentPage(1);
                 }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 text-xs sm:text-sm w-full sm:w-auto"
               >
-                <Calendar className="h-4 w-4" />
-                {showUpcoming ? 'Ver Eventos Passados' : 'Ver Próximos Eventos'}
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                {showUpcoming ? 'Ver Passados' : 'Ver Próximos'}
               </Button>
             </div>
             

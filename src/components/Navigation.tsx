@@ -43,20 +43,20 @@ export function Navigation() {
           <h1 className="text-xs md:text-xl font-bold text-gradient font-poppins hidden lg:block truncate">Band Manager</h1>
           
           {/* Menu de navegação - scroll horizontal em mobile */}
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1 min-w-0">
             {navItems.filter(item => item.path !== "/").map(({ path, label, icon: Icon }) => (
               <Link key={path} to={path} className="shrink-0">
                 <Button
                   variant={location.pathname === path ? "default" : "ghost"}
                   size="sm"
-                  className={`flex items-center gap-1 hover-lift h-8 px-2 md:h-10 md:px-4 ${
+                  className={`flex items-center gap-1 hover-lift h-8 px-1.5 md:h-10 md:px-4 ${
                     location.pathname === path 
                       ? "btn-gradient shadow-glow" 
                       : "hover:bg-primary/10"
                   }`}
                 >
                   <Icon className="h-3 w-3 md:h-4 md:w-4" />
-                  <span className="text-xs md:text-sm whitespace-nowrap">{label}</span>
+                  <span className="text-[10px] md:text-sm whitespace-nowrap">{label}</span>
                 </Button>
               </Link>
             ))}

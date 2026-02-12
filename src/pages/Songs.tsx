@@ -475,9 +475,9 @@ export default function Songs() {
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                 <Select value={keyFilter} onValueChange={setKeyFilter}>
-                  <SelectTrigger className="w-[120px] sm:w-32">
+                  <SelectTrigger className="w-full sm:w-32">
                     <SelectValue placeholder="Tom" />
                   </SelectTrigger>
                   <SelectContent>
@@ -489,8 +489,8 @@ export default function Songs() {
                 </Select>
 
                 <Select value={tagFilter} onValueChange={setTagFilter}>
-                  <SelectTrigger className="w-[130px] sm:w-36">
-                    <Tag className="h-4 w-4 mr-2" />
+                  <SelectTrigger className="w-full sm:w-36">
+                    <Tag className="h-4 w-4 mr-1 shrink-0" />
                     <SelectValue placeholder="Tag" />
                   </SelectTrigger>
                   <SelectContent>
@@ -499,7 +499,7 @@ export default function Songs() {
                       <SelectItem key={tag.id} value={tag.id}>
                         <div className="flex items-center gap-2">
                           <div 
-                            className="w-3 h-3 rounded-full" 
+                            className="w-3 h-3 rounded-full shrink-0" 
                             style={{ backgroundColor: tag.color }}
                           />
                           {tag.name}
@@ -510,7 +510,7 @@ export default function Songs() {
                 </Select>
 
                 <Select value={bandFilter} onValueChange={setBandFilter}>
-                  <SelectTrigger className="w-[140px] sm:w-40">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue placeholder="Banda" />
                   </SelectTrigger>
                   <SelectContent>
@@ -522,7 +522,7 @@ export default function Songs() {
                 </Select>
 
                 <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                  <SelectTrigger className="w-[140px] sm:w-40">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -533,7 +533,7 @@ export default function Songs() {
                   </SelectContent>
                 </Select>
 
-                <div className="flex items-center border rounded-lg p-1">
+                <div className="flex items-center border rounded-lg p-1 col-span-2 sm:col-span-1 justify-center">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="sm"
