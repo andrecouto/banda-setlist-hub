@@ -103,18 +103,21 @@ export default function Events() {
     fetchUserRole();
   }, []);
 
+  const [userBandId, setUserBandId] = useState<string | null>(null);
+
   const fetchUserRole = async () => {
     if (!user) return;
     
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, band_id")
         .eq("user_id", user.id)
         .single();
 
       if (error) throw error;
       setUserRole(data.role);
+      setUserBandId(data.band_id);
     } catch (error) {
       console.error("Error fetching user role:", error);
     }
@@ -389,7 +392,7 @@ export default function Events() {
       notes: "",
       youtube_link: "",
       lyrics: "",
-      band_id: "",
+      band_id: userBandId || "",
       leader_id: "none",
     });
     setEventSongs([]);
@@ -564,6 +567,7 @@ export default function Events() {
                       setFormData((prev) => ({ ...prev, band_id: value }))
                     }
                     required
+                    disabled={userRole !== 'superuser'}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma banda" />
@@ -576,6 +580,11 @@ export default function Events() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {userRole !== 'superuser' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Apenas administradores podem alterar a banda
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="leader_id">Líder</Label>
