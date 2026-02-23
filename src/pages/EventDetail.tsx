@@ -850,9 +850,10 @@ export default function EventDetail() {
                 {(userRole === 'superuser' || userRole === 'band_admin') && (
                   <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" className="flex items-center gap-2">
+                      <Button size="sm" className="flex items-center gap-1 md:gap-2">
                         <Plus className="h-4 w-4" />
-                        Adicionar Participante
+                        <span className="hidden sm:inline">Adicionar Participante</span>
+                        <span className="sm:hidden">Adicionar</span>
                       </Button>
                     </DialogTrigger>
                 <DialogContent>
@@ -916,6 +917,7 @@ export default function EventDetail() {
                 <p className="text-sm">Clique em "Adicionar Participante" para começar</p>
               </div>
             ) : (
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -950,6 +952,7 @@ export default function EventDetail() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
