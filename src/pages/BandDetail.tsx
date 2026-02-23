@@ -215,17 +215,17 @@ export default function BandDetail() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-6">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4 mb-6">
           <Link to="/bands">
             <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
+              <ArrowLeft className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Voltar</span>
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">{band.name}</h1>
-            <p className="text-muted-foreground">{band.description || "Sem descrição"}</p>
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-3xl font-bold text-foreground truncate">{band.name}</h1>
+            <p className="text-sm md:text-base text-muted-foreground">{band.description || "Sem descrição"}</p>
           </div>
         </div>
 
@@ -411,12 +411,13 @@ export default function BandDetail() {
                     Nenhum evento registrado
                   </div>
                 ) : (
-                  <Table>
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <Table className="min-w-[500px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nome</TableHead>
                         <TableHead>Data</TableHead>
-                        <TableHead>Observações</TableHead>
+                        <TableHead className="hidden sm:table-cell">Observações</TableHead>
                         <TableHead>Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -427,7 +428,7 @@ export default function BandDetail() {
                           <TableCell>
                             {new Date(event.event_date + 'T00:00:00').toLocaleDateString()}
                           </TableCell>
-                          <TableCell>{event.notes || "-"}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{event.notes || "-"}</TableCell>
                           <TableCell>
                             <Link to={`/events/${event.id}`}>
                               <Button variant="outline" size="sm">
@@ -439,6 +440,7 @@ export default function BandDetail() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
                 )}
               </CardContent>
             </Card>
