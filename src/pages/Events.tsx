@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { EventCard } from "@/components/EventCard";
 import { EventSongManager } from "@/components/EventSongManager";
-import { Plus, Calendar, Users, Music, Search, Filter, X } from "lucide-react";
+import { Plus, Calendar, Users, Music, Search, Filter, X, FileText } from "lucide-react";
 
 type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
 
@@ -625,7 +625,62 @@ export default function Events() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lyrics">Letra do Evento</Label>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="lyrics">Letra do Evento</Label>
+                    {eventSongs.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const songIds = eventSongs.map(s => s.song_id);
+                          const { data: songsData } = await supabase
+                            .from("songs")
+                            .select("id, name, lyrics")
+                            .in("id", songIds);
+
+                          if (!songsData) return;
+
+                          const songsMap = new Map(songsData.map(s => [s.id, s]));
+                          const parts: string[] = [];
+                          let i = 0;
+                          const sorted = [...eventSongs].sort((a, b) => a.song_order - b.song_order);
+
+                          while (i < sorted.length) {
+                            const es = sorted[i];
+                            if (es.is_medley && es.medley_group !== null) {
+                              const group = es.medley_group;
+                              const medleySongs: typeof sorted = [];
+                              while (i < sorted.length && sorted[i].is_medley && sorted[i].medley_group === group) {
+                                medleySongs.push(sorted[i]);
+                                i++;
+                              }
+                              const header = `=== MEDLEY: ${medleySongs.map(s => s.song.name).join(" + ")} ===`;
+                              const lyrics = medleySongs
+                                .map(s => {
+                                  const sd = songsMap.get(s.song_id);
+                                  return sd?.lyrics || `[Letra de "${s.song.name}" não disponível]`;
+                                })
+                                .join("\n");
+                              parts.push(`${header}\n\n${lyrics}`);
+                            } else {
+                              const header = `=== ${es.song.name}${es.key_played ? ` (${es.key_played})` : es.song.key ? ` (${es.song.key})` : ''} ===`;
+                              const songData = songsMap.get(es.song_id);
+                              const lyrics = songData?.lyrics || `[Letra de "${es.song.name}" não disponível]`;
+                              parts.push(`${header}\n\n${lyrics}`);
+                              i++;
+                            }
+                          }
+
+                          setFormData(prev => ({ ...prev, lyrics: parts.join("\n\n\n") }));
+                          toast({ title: "Letras compiladas!", description: "Revise e edite conforme necessário." });
+                        }}
+                      >
+                        <FileText className="h-4 w-4 mr-1" />
+                        Compilar Letras
+                      </Button>
+                    )}
+                  </div>
                   <Textarea
                     id="lyrics"
                     value={formData.lyrics}

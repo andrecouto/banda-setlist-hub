@@ -699,18 +699,6 @@ export default function EventDetail() {
                     <span className="sm:hidden">Letras</span>
                   </Button>
                 )}
-                {(userRole === 'superuser' || userRole === 'band_admin') && eventSongs.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1"
-                    onClick={compileLyrics}
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span className="hidden sm:inline">Compilar Letras</span>
-                    <span className="sm:hidden">Compilar</span>
-                  </Button>
-                )}
                 {(userRole === 'superuser' || userRole === 'band_admin') && (
                 <Dialog open={isAddSongDialogOpen} onOpenChange={setIsAddSongDialogOpen}>
                   <DialogTrigger asChild>
