@@ -13,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
-import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft, Copy } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft, Copy, FileText, Pencil, Save, X } from "lucide-react";
 
 type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
 
@@ -38,6 +39,7 @@ interface EventSong {
     id: string;
     name: string;
     key: string | null;
+    lyrics: string | null;
   };
 }
 
@@ -97,6 +99,10 @@ export default function EventDetail() {
   const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editCommentContent, setEditCommentContent] = useState("");
+  const [isCompileLyricsOpen, setIsCompileLyricsOpen] = useState(false);
+  const [compiledLyrics, setCompiledLyrics] = useState("");
+  const [isEditingLyrics, setIsEditingLyrics] = useState(false);
+  const [editableLyrics, setEditableLyrics] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -157,7 +163,7 @@ export default function EventDetail() {
         .from("event_songs")
         .select(`
           *,
-          songs(id, name, key)
+          songs(id, name, key, lyrics)
         `)
         .eq("event_id", id)
         .order("song_order");
@@ -477,6 +483,75 @@ export default function EventDetail() {
     }
   };
 
+  const compileLyrics = () => {
+    if (eventSongs.length === 0) return;
+
+    const parts: string[] = [];
+    let i = 0;
+    while (i < eventSongs.length) {
+      const song = eventSongs[i];
+      if (song.is_medley && song.medley_group !== null) {
+        // Collect all songs in this medley group
+        const medleySongs: EventSong[] = [];
+        const group = song.medley_group;
+        while (i < eventSongs.length && eventSongs[i].is_medley && eventSongs[i].medley_group === group) {
+          medleySongs.push(eventSongs[i]);
+          i++;
+        }
+        // Medley: join lyrics without separator
+        const medleyHeader = `=== MEDLEY: ${medleySongs.map(s => s.songs.name).join(" + ")} ===`;
+        const medleyLyrics = medleySongs
+          .map(s => s.songs.lyrics || `[Letra de "${s.songs.name}" não disponível]`)
+          .join("\n");
+        parts.push(`${medleyHeader}\n\n${medleyLyrics}`);
+      } else {
+        const header = `=== ${song.songs.name}${song.key_played ? ` (${song.key_played})` : song.songs.key ? ` (${song.songs.key})` : ''} ===`;
+        const lyrics = song.songs.lyrics || `[Letra de "${song.songs.name}" não disponível]`;
+        parts.push(`${header}\n\n${lyrics}`);
+        i++;
+      }
+    }
+    
+    setCompiledLyrics(parts.join("\n\n\n"));
+    setIsCompileLyricsOpen(true);
+  };
+
+  const saveCompiledLyrics = async () => {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ lyrics: compiledLyrics })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setEvent(prev => prev ? { ...prev, lyrics: compiledLyrics } : prev);
+      setIsCompileLyricsOpen(false);
+      toast({ title: "Sucesso", description: "Letras do evento salvas!" });
+    } catch (error) {
+      console.error("Error saving lyrics:", error);
+      toast({ title: "Erro", description: "Erro ao salvar letras", variant: "destructive" });
+    }
+  };
+
+  const saveLyricsEdit = async () => {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ lyrics: editableLyrics || null })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setEvent(prev => prev ? { ...prev, lyrics: editableLyrics || null } : prev);
+      setIsEditingLyrics(false);
+      toast({ title: "Sucesso", description: "Letras atualizadas!" });
+    } catch (error) {
+      console.error("Error updating lyrics:", error);
+      toast({ title: "Erro", description: "Erro ao atualizar letras", variant: "destructive" });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -622,6 +697,18 @@ export default function EventDetail() {
                     <Copy className="h-4 w-4" />
                     <span className="hidden sm:inline">Copiar Letras</span>
                     <span className="sm:hidden">Letras</span>
+                  </Button>
+                )}
+                {(userRole === 'superuser' || userRole === 'band_admin') && eventSongs.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={compileLyrics}
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Compilar Letras</span>
+                    <span className="sm:hidden">Compilar</span>
                   </Button>
                 )}
                 {(userRole === 'superuser' || userRole === 'band_admin') && (
@@ -804,39 +891,110 @@ export default function EventDetail() {
           </CardContent>
         </Card>
 
-        {event.lyrics && (
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Letra do Evento</CardTitle>
-                  <CardDescription>
-                    Letra completa conforme será tocada
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(event.lyrics || "");
-                    toast({
-                      title: "Copiado!",
-                      description: "Letra copiada para a área de transferência.",
-                    });
-                  }}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copiar
+        {/* Compile Lyrics Dialog */}
+        <Dialog open={isCompileLyricsOpen} onOpenChange={setIsCompileLyricsOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Compilar Letras do Evento</DialogTitle>
+              <DialogDescription>
+                Revise e edite as letras compiladas antes de salvar
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                value={compiledLyrics}
+                onChange={(e) => setCompiledLyrics(e.target.value)}
+                className="min-h-[400px] font-mono text-sm"
+                placeholder="Letras compiladas..."
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setIsCompileLyricsOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={saveCompiledLyrics}>
+                  <Save className="h-4 w-4 mr-1" />
+                  Salvar Letras
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <div>
+                <CardTitle>Letra do Evento</CardTitle>
+                <CardDescription>
+                  Letra completa conforme será tocada
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                {event.lyrics && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(event.lyrics || "");
+                      toast({
+                        title: "Copiado!",
+                        description: "Letra copiada para a área de transferência.",
+                      });
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copiar
+                  </Button>
+                )}
+                {(userRole === 'superuser' || userRole === 'band_admin') && !isEditingLyrics && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditableLyrics(event.lyrics || "");
+                      setIsEditingLyrics(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isEditingLyrics ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={editableLyrics}
+                  onChange={(e) => setEditableLyrics(e.target.value)}
+                  className="min-h-[300px] font-mono text-sm"
+                  placeholder="Letras do evento..."
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingLyrics(false)}>
+                    <X className="h-4 w-4 mr-1" />
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={saveLyricsEdit}>
+                    <Save className="h-4 w-4 mr-1" />
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            ) : event.lyrics ? (
               <pre className="whitespace-pre-wrap font-sans text-sm text-foreground bg-muted/50 p-4 rounded-lg">
                 {event.lyrics}
               </pre>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma letra compilada</p>
+                <p className="text-xs">Use o botão "Compilar Letras" para gerar automaticamente</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
