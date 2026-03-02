@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Copy } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Copy, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +32,7 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
   const { toast } = useToast();
+  const [lyricsOpen, setLyricsOpen] = useState(false);
 
   // Prepara a URL do WhatsApp fora do handler para evitar bloqueios/iframe
   const formattedDate = eventDate.toLocaleDateString('pt-BR', { 
@@ -204,15 +207,9 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-1 h-7 px-2 text-xs sm:h-8 sm:px-3"
-                onClick={() => {
-                  navigator.clipboard.writeText(event.lyrics || "");
-                  toast({
-                    title: "Copiado!",
-                    description: "Letra copiada para a área de transferência.",
-                  });
-                }}
+                onClick={() => setLyricsOpen(true)}
               >
-                <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
+                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Letras</span>
               </Button>
             )}
@@ -225,6 +222,31 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
           </div>
         </div>
       </CardContent>
+
+      <Dialog open={lyricsOpen} onOpenChange={setLyricsOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Letra - {event.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground border rounded-md p-4 bg-muted/30">
+            {event.lyrics}
+          </div>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              navigator.clipboard.writeText(event.lyrics || "");
+              toast({ title: "Copiado!", description: "Letra copiada para a área de transferência." });
+            }}
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            Copiar Letra
+          </Button>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
