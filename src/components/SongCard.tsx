@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Music, Clock, Edit, Trash } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Music, Clock, Edit, Trash, FileText, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface SongCardProps {
   song: {
@@ -29,6 +32,9 @@ interface SongCardProps {
 }
 
 export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
+  const [lyricsOpen, setLyricsOpen] = useState(false);
+  const { toast } = useToast();
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
@@ -118,8 +124,44 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
               }
             </span>
           </div>
+          {song.lyrics && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1 h-7 px-2 text-xs"
+              onClick={() => setLyricsOpen(true)}
+            >
+              <FileText className="h-3 w-3" />
+              Letra
+            </Button>
+          )}
         </div>
       </CardContent>
+
+      <Dialog open={lyricsOpen} onOpenChange={setLyricsOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Letra - {song.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground border rounded-md p-4 bg-muted/30">
+            {song.lyrics}
+          </div>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              navigator.clipboard.writeText(song.lyrics || "");
+              toast({ title: "Copiado!", description: "Letra copiada para a área de transferência." });
+            }}
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            Copiar Letra
+          </Button>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
