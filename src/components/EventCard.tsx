@@ -3,9 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Copy, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Copy, FileText, Save, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
 
@@ -25,21 +27,46 @@ interface EventCardProps {
   onEdit?: (event: any) => void;
   onDelete?: (id: string) => void;
   canManage?: boolean;
+  onLyricsUpdate?: (id: string, lyrics: string) => void;
 }
 
-export function EventCard({ event, onEdit, onDelete, canManage = false }: EventCardProps) {
+export function EventCard({ event, onEdit, onDelete, canManage = false, onLyricsUpdate }: EventCardProps) {
   const eventDate = new Date(event.event_date + 'T00:00:00');
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
   const { toast } = useToast();
   const [lyricsOpen, setLyricsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedLyrics, setEditedLyrics] = useState(event.lyrics || "");
+  const [saving, setSaving] = useState(false);
 
-  // Prepara a URL do WhatsApp fora do handler para evitar bloqueios/iframe
+  const handleOpenLyrics = () => {
+    setEditedLyrics(event.lyrics || "");
+    setIsEditing(false);
+    setLyricsOpen(true);
+  };
+
+  const handleSaveLyrics = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("events")
+      .update({ lyrics: editedLyrics })
+      .eq("id", event.id);
+    setSaving(false);
+
+    if (error) {
+      toast({ title: "Erro", description: "Não foi possível salvar a letra.", variant: "destructive" });
+    } else {
+      toast({ title: "Salvo!", description: "Letra atualizada com sucesso." });
+      event.lyrics = editedLyrics;
+      onLyricsUpdate?.(event.id, editedLyrics);
+      setIsEditing(false);
+    }
+  };
+
+  // Prepara a URL do WhatsApp
   const formattedDate = eventDate.toLocaleDateString('pt-BR', { 
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
   
   let message = `🎵 *${event.name}*\n`;
@@ -50,9 +77,7 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
     message += `\n*Músicas do Setlist:*\n`;
     event.songs.forEach((song, index) => {
       message += `${index + 1}. ${song.name}`;
-      if (song.key_played) {
-        message += ` (${song.key_played})`;
-      }
+      if (song.key_played) message += ` (${song.key_played})`;
       message += '\n';
     });
   }
@@ -62,20 +87,13 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
 
   const handleShareClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (navigator.share) {
-      try {
-        await navigator.share({ text: message });
-        e.preventDefault();
-        return;
-      } catch {}
+      try { await navigator.share({ text: message }); e.preventDefault(); return; } catch {}
     }
     try {
       const urls = [whatsappUrl, whatsappUrlAlt];
       for (const url of urls) {
         const win = window.top?.open(url, '_blank', 'noopener,noreferrer');
-        if (win) {
-          e.preventDefault();
-          return;
-        }
+        if (win) { e.preventDefault(); return; }
       }
     } catch {}
     try {
@@ -96,10 +114,7 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
             </CardTitle>
             <CardDescription className="mt-1">
               {eventDate.toLocaleDateString('pt-BR', { 
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
               })}
             </CardDescription>
             <div className="flex flex-wrap gap-1 mt-2">
@@ -118,19 +133,14 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
                 </Badge>
               )}
               {isUpcoming && (
-                <Badge variant="default" className="text-[10px] sm:text-xs">
-                  Próximo
-                </Badge>
+                <Badge variant="default" className="text-[10px] sm:text-xs">Próximo</Badge>
               )}
               {isPast && (
-                <Badge variant="outline" className="text-[10px] sm:text-xs">
-                  Realizado
-                </Badge>
+                <Badge variant="outline" className="text-[10px] sm:text-xs">Realizado</Badge>
               )}
               {event.youtube_link && (
                 <Badge variant="destructive" className="text-[10px] sm:text-xs">
-                  <Youtube className="h-3 w-3 mr-1" />
-                  YT
+                  <Youtube className="h-3 w-3 mr-1" />YT
                 </Badge>
               )}
             </div>
@@ -138,20 +148,12 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
           {canManage && (onEdit || onDelete) && (
             <div className="flex gap-1">
               {onEdit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onEdit(event)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => onEdit(event)}>
                   <Edit className="h-4 w-4" />
                 </Button>
               )}
               {onDelete && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onDelete(event.id)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => onDelete(event.id)}>
                   <Trash className="h-4 w-4" />
                 </Button>
               )}
@@ -161,9 +163,7 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
       </CardHeader>
       <CardContent className="pt-0">
         {event.notes && (
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-            {event.notes}
-          </p>
+          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{event.notes}</p>
         )}
         
         {event.songs && event.songs.length > 0 && (
@@ -175,13 +175,9 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
             <div className="grid grid-cols-1 gap-1">
               {event.songs.slice(0, 3).map((song, index) => (
                 <div key={index} className="flex justify-between items-center text-xs bg-muted/50 rounded p-2">
-                  <span className="text-muted-foreground">
-                    {index + 1}. {song.name}
-                  </span>
+                  <span className="text-muted-foreground">{index + 1}. {song.name}</span>
                   {song.key_played && (
-                    <Badge variant="outline" className="text-xs py-0 px-1">
-                      {song.key_played}
-                    </Badge>
+                    <Badge variant="outline" className="text-xs py-0 px-1">{song.key_played}</Badge>
                   )}
                 </div>
               ))}
@@ -207,7 +203,7 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-1 h-7 px-2 text-xs sm:h-8 sm:px-3"
-                onClick={() => setLyricsOpen(true)}
+                onClick={handleOpenLyrics}
               >
                 <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Letras</span>
@@ -231,20 +227,65 @@ export function EventCard({ event, onEdit, onDelete, canManage = false }: EventC
               Letra - {event.name}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground border rounded-md p-4 bg-muted/30">
-            {event.lyrics}
+
+          {isEditing ? (
+            <Textarea
+              value={editedLyrics}
+              onChange={(e) => setEditedLyrics(e.target.value)}
+              className="flex-1 min-h-[200px] max-h-[50vh] font-mono text-sm"
+            />
+          ) : (
+            <div className="flex-1 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground border rounded-md p-4 bg-muted/30">
+              {editedLyrics || event.lyrics}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            {isEditing ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setEditedLyrics(event.lyrics || "");
+                    setIsEditing(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSaveLyrics}
+                  disabled={saving}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? "Salvando..." : "Salvar"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(event.lyrics || "");
+                    toast({ title: "Copiado!", description: "Letra copiada para a área de transferência." });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              </>
+            )}
           </div>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => {
-              navigator.clipboard.writeText(event.lyrics || "");
-              toast({ title: "Copiado!", description: "Letra copiada para a área de transferência." });
-            }}
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            Copiar Letra
-          </Button>
         </DialogContent>
       </Dialog>
     </Card>

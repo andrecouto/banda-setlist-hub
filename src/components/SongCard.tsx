@@ -3,8 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Music, Clock, Edit, Trash, FileText, Copy } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Music, Clock, Edit, Trash, FileText, Copy, Save, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SongCardProps {
   song: {
@@ -29,11 +31,39 @@ interface SongCardProps {
   };
   onEdit?: (song: any) => void;
   onDelete?: (id: string) => void;
+  onLyricsUpdate?: (id: string, lyrics: string) => void;
 }
 
-export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
+export function SongCard({ song, onEdit, onDelete, onLyricsUpdate }: SongCardProps) {
   const [lyricsOpen, setLyricsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedLyrics, setEditedLyrics] = useState(song.lyrics || "");
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  const handleOpenLyrics = () => {
+    setEditedLyrics(song.lyrics || "");
+    setIsEditing(false);
+    setLyricsOpen(true);
+  };
+
+  const handleSaveLyrics = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("songs")
+      .update({ lyrics: editedLyrics })
+      .eq("id", song.id);
+    setSaving(false);
+
+    if (error) {
+      toast({ title: "Erro", description: "Não foi possível salvar a letra.", variant: "destructive" });
+    } else {
+      toast({ title: "Salvo!", description: "Letra atualizada com sucesso." });
+      song.lyrics = editedLyrics;
+      onLyricsUpdate?.(song.id, editedLyrics);
+      setIsEditing(false);
+    }
+  };
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -85,7 +115,7 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
             <span className="font-medium">Autor:</span> {song.author}
           </p>
         )}
-        
+
         {song.chord_chart && (
           <div className="mb-3">
             <p className="text-sm font-medium mb-1">Cifra:</p>
@@ -94,7 +124,7 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
             </pre>
           </div>
         )}
-        
+
         {song.medleys && song.medleys.length > 0 && (
           <div className="mb-3">
             <p className="text-sm font-medium mb-1">Medleys:</p>
@@ -113,12 +143,12 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
             </div>
           </div>
         )}
-        
+
         <div className="flex justify-between items-center text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
             <span>
-              {song.last_played 
+              {song.last_played
                 ? `Última: ${new Date(song.last_played).toLocaleDateString()}`
                 : `Criada: ${new Date(song.created_at).toLocaleDateString()}`
               }
@@ -129,7 +159,7 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
               variant="outline"
               size="sm"
               className="flex items-center gap-1 h-7 px-2 text-xs"
-              onClick={() => setLyricsOpen(true)}
+              onClick={handleOpenLyrics}
             >
               <FileText className="h-3 w-3" />
               Letra
@@ -146,20 +176,65 @@ export function SongCard({ song, onEdit, onDelete }: SongCardProps) {
               Letra - {song.name}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground border rounded-md p-4 bg-muted/30">
-            {song.lyrics}
+
+          {isEditing ? (
+            <Textarea
+              value={editedLyrics}
+              onChange={(e) => setEditedLyrics(e.target.value)}
+              className="flex-1 min-h-[200px] max-h-[50vh] font-mono text-sm"
+            />
+          ) : (
+            <div className="flex-1 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground border rounded-md p-4 bg-muted/30">
+              {editedLyrics || song.lyrics}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            {isEditing ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setEditedLyrics(song.lyrics || "");
+                    setIsEditing(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSaveLyrics}
+                  disabled={saving}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? "Salvando..." : "Salvar"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(song.lyrics || "");
+                    toast({ title: "Copiado!", description: "Letra copiada para a área de transferência." });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              </>
+            )}
           </div>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => {
-              navigator.clipboard.writeText(song.lyrics || "");
-              toast({ title: "Copiado!", description: "Letra copiada para a área de transferência." });
-            }}
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            Copiar Letra
-          </Button>
         </DialogContent>
       </Dialog>
     </Card>
