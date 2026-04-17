@@ -698,6 +698,73 @@ export default function Events() {
                     className="min-h-[150px]"
                   />
                 </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="chord_chart">Cifra do Evento</Label>
+                    {eventSongs.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const songIds = eventSongs.map(s => s.song_id);
+                          const { data: songsData } = await supabase
+                            .from("songs")
+                            .select("id, name, chord_chart")
+                            .in("id", songIds);
+
+                          if (!songsData) return;
+
+                          const songsMap = new Map(songsData.map(s => [s.id, s]));
+                          const parts: string[] = [];
+                          let i = 0;
+                          const sorted = [...eventSongs].sort((a, b) => a.song_order - b.song_order);
+
+                          while (i < sorted.length) {
+                            const es = sorted[i];
+                            if (es.is_medley && es.medley_group !== null && es.medley_group !== undefined) {
+                              const group = es.medley_group;
+                              const medleySongs: typeof sorted = [];
+                              while (i < sorted.length && sorted[i].is_medley && sorted[i].medley_group === group) {
+                                medleySongs.push(sorted[i]);
+                                i++;
+                              }
+                              const header = `=== MEDLEY: ${medleySongs.map(s => s.song.name).join(" + ")} ===`;
+                              const chords = medleySongs
+                                .map(s => {
+                                  const sd = songsMap.get(s.song_id);
+                                  return sd?.chord_chart || `[Cifra de "${s.song.name}" não disponível]`;
+                                })
+                                .join("\n");
+                              parts.push(`${header}\n\n${chords}`);
+                            } else {
+                              const header = `=== ${es.song.name}${es.key_played ? ` (${es.key_played})` : es.song.key ? ` (${es.song.key})` : ''} ===`;
+                              const songData = songsMap.get(es.song_id);
+                              const chords = songData?.chord_chart || `[Cifra de "${es.song.name}" não disponível]`;
+                              parts.push(`${header}\n\n${chords}`);
+                              i++;
+                            }
+                          }
+
+                          setFormData(prev => ({ ...prev, chord_chart: parts.join("\n\n\n") }));
+                          toast({ title: "Cifras compiladas!", description: "Revise e edite conforme necessário." });
+                        }}
+                      >
+                        <Guitar className="h-4 w-4 mr-1" />
+                        Compilar Cifras
+                      </Button>
+                    )}
+                  </div>
+                  <Textarea
+                    id="chord_chart"
+                    value={formData.chord_chart}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, chord_chart: e.target.value }))
+                    }
+                    placeholder="Cole aqui as cifras compiladas do evento..."
+                    className="min-h-[150px] font-mono text-sm"
+                  />
+                </div>
                 
                 <EventSongManager
                   eventId={editingEvent?.id}
