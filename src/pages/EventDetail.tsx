@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft, Copy, FileText, Pencil, Save, X } from "lucide-react";
+import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft, Copy, FileText, Pencil, Save, X, Guitar, Maximize2 } from "lucide-react";
 
 type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
 
@@ -26,6 +26,7 @@ interface Event {
   notes: string | null;
   youtube_link: string | null;
   lyrics: string | null;
+  chord_chart: string | null;
   bands: { name: string };
 }
 
@@ -40,6 +41,7 @@ interface EventSong {
     name: string;
     key: string | null;
     lyrics: string | null;
+    chord_chart: string | null;
   };
 }
 
@@ -103,6 +105,11 @@ export default function EventDetail() {
   const [compiledLyrics, setCompiledLyrics] = useState("");
   const [isEditingLyrics, setIsEditingLyrics] = useState(false);
   const [editableLyrics, setEditableLyrics] = useState("");
+  const [isCompileChordsOpen, setIsCompileChordsOpen] = useState(false);
+  const [compiledChords, setCompiledChords] = useState("");
+  const [isEditingChords, setIsEditingChords] = useState(false);
+  const [editableChords, setEditableChords] = useState("");
+  const [isFullscreenChords, setIsFullscreenChords] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -163,7 +170,7 @@ export default function EventDetail() {
         .from("event_songs")
         .select(`
           *,
-          songs(id, name, key, lyrics)
+          songs(id, name, key, lyrics, chord_chart)
         `)
         .eq("event_id", id)
         .order("song_order");
