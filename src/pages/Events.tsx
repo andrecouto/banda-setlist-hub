@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { EventCard } from "@/components/EventCard";
 import { EventSongManager } from "@/components/EventSongManager";
-import { Plus, Calendar, Users, Music, Search, Filter, X, FileText } from "lucide-react";
+import { Plus, Calendar, Users, Music, Search, Filter, X, FileText, Guitar } from "lucide-react";
 
 type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
 
@@ -27,6 +27,7 @@ interface Event {
   notes: string | null;
   youtube_link: string | null;
   lyrics: string | null;
+  chord_chart: string | null;
   band_id: string;
   leader_id: string | null;
   bands: { name: string };
@@ -91,6 +92,7 @@ export default function Events() {
     notes: "",
     youtube_link: "",
     lyrics: "",
+    chord_chart: "",
     band_id: "",
     leader_id: "none",
   });
@@ -135,6 +137,7 @@ export default function Events() {
           notes,
           youtube_link,
           lyrics,
+          chord_chart,
           band_id,
           leader_id,
           bands(name),
@@ -244,6 +247,7 @@ export default function Events() {
         notes: formData.notes || null,
         youtube_link: formData.youtube_link || null,
         lyrics: formData.lyrics || null,
+        chord_chart: formData.chord_chart || null,
         band_id: formData.band_id,
         leader_id: formData.leader_id === "none" ? null : formData.leader_id,
       };
@@ -302,6 +306,7 @@ export default function Events() {
         notes: "",
         youtube_link: "",
         lyrics: "",
+        chord_chart: "",
         band_id: "",
         leader_id: "none",
       });
@@ -325,7 +330,7 @@ export default function Events() {
         .from("event_songs")
         .select(`
           *,
-          songs(id, name, key)
+          songs(id, name, key, chord_chart)
         `)
         .eq("event_id", eventId)
         .order("song_order");
@@ -357,6 +362,7 @@ export default function Events() {
       notes: event.notes || "",
       youtube_link: event.youtube_link || "",
       lyrics: event.lyrics || "",
+      chord_chart: event.chord_chart || "",
       band_id: event.band_id,
       leader_id: event.leader_id || "none",
     });
@@ -392,6 +398,7 @@ export default function Events() {
       notes: "",
       youtube_link: "",
       lyrics: "",
+      chord_chart: "",
       band_id: userBandId || "",
       leader_id: "none",
     });
