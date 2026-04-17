@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { EventCard } from "@/components/EventCard";
 import { EventSongManager } from "@/components/EventSongManager";
-import { Plus, Calendar, Users, Music, Search, Filter, X, FileText } from "lucide-react";
+import { Plus, Calendar, Users, Music, Search, Filter, X, FileText, Guitar } from "lucide-react";
 
 type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
 
@@ -27,6 +27,7 @@ interface Event {
   notes: string | null;
   youtube_link: string | null;
   lyrics: string | null;
+  chord_chart: string | null;
   band_id: string;
   leader_id: string | null;
   bands: { name: string };
@@ -91,6 +92,7 @@ export default function Events() {
     notes: "",
     youtube_link: "",
     lyrics: "",
+    chord_chart: "",
     band_id: "",
     leader_id: "none",
   });
@@ -135,6 +137,7 @@ export default function Events() {
           notes,
           youtube_link,
           lyrics,
+          chord_chart,
           band_id,
           leader_id,
           bands(name),
@@ -244,6 +247,7 @@ export default function Events() {
         notes: formData.notes || null,
         youtube_link: formData.youtube_link || null,
         lyrics: formData.lyrics || null,
+        chord_chart: formData.chord_chart || null,
         band_id: formData.band_id,
         leader_id: formData.leader_id === "none" ? null : formData.leader_id,
       };
@@ -302,6 +306,7 @@ export default function Events() {
         notes: "",
         youtube_link: "",
         lyrics: "",
+        chord_chart: "",
         band_id: "",
         leader_id: "none",
       });
@@ -325,7 +330,7 @@ export default function Events() {
         .from("event_songs")
         .select(`
           *,
-          songs(id, name, key)
+          songs(id, name, key, chord_chart)
         `)
         .eq("event_id", eventId)
         .order("song_order");
@@ -357,6 +362,7 @@ export default function Events() {
       notes: event.notes || "",
       youtube_link: event.youtube_link || "",
       lyrics: event.lyrics || "",
+      chord_chart: event.chord_chart || "",
       band_id: event.band_id,
       leader_id: event.leader_id || "none",
     });
@@ -392,6 +398,7 @@ export default function Events() {
       notes: "",
       youtube_link: "",
       lyrics: "",
+      chord_chart: "",
       band_id: userBandId || "",
       leader_id: "none",
     });
@@ -689,6 +696,73 @@ export default function Events() {
                     }
                     placeholder="Cole aqui a letra completa conforme será tocada no evento..."
                     className="min-h-[150px]"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="chord_chart">Cifra do Evento</Label>
+                    {eventSongs.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const songIds = eventSongs.map(s => s.song_id);
+                          const { data: songsData } = await supabase
+                            .from("songs")
+                            .select("id, name, chord_chart")
+                            .in("id", songIds);
+
+                          if (!songsData) return;
+
+                          const songsMap = new Map(songsData.map(s => [s.id, s]));
+                          const parts: string[] = [];
+                          let i = 0;
+                          const sorted = [...eventSongs].sort((a, b) => a.song_order - b.song_order);
+
+                          while (i < sorted.length) {
+                            const es = sorted[i];
+                            if (es.is_medley && es.medley_group !== null && es.medley_group !== undefined) {
+                              const group = es.medley_group;
+                              const medleySongs: typeof sorted = [];
+                              while (i < sorted.length && sorted[i].is_medley && sorted[i].medley_group === group) {
+                                medleySongs.push(sorted[i]);
+                                i++;
+                              }
+                              const header = `=== MEDLEY: ${medleySongs.map(s => s.song.name).join(" + ")} ===`;
+                              const chords = medleySongs
+                                .map(s => {
+                                  const sd = songsMap.get(s.song_id);
+                                  return sd?.chord_chart || `[Cifra de "${s.song.name}" não disponível]`;
+                                })
+                                .join("\n");
+                              parts.push(`${header}\n\n${chords}`);
+                            } else {
+                              const header = `=== ${es.song.name}${es.key_played ? ` (${es.key_played})` : es.song.key ? ` (${es.song.key})` : ''} ===`;
+                              const songData = songsMap.get(es.song_id);
+                              const chords = songData?.chord_chart || `[Cifra de "${es.song.name}" não disponível]`;
+                              parts.push(`${header}\n\n${chords}`);
+                              i++;
+                            }
+                          }
+
+                          setFormData(prev => ({ ...prev, chord_chart: parts.join("\n\n\n") }));
+                          toast({ title: "Cifras compiladas!", description: "Revise e edite conforme necessário." });
+                        }}
+                      >
+                        <Guitar className="h-4 w-4 mr-1" />
+                        Compilar Cifras
+                      </Button>
+                    )}
+                  </div>
+                  <Textarea
+                    id="chord_chart"
+                    value={formData.chord_chart}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, chord_chart: e.target.value }))
+                    }
+                    placeholder="Cole aqui as cifras compiladas do evento..."
+                    className="min-h-[150px] font-mono text-sm"
                   />
                 </div>
                 

@@ -170,6 +170,7 @@ export type Database = {
       events: {
         Row: {
           band_id: string
+          chord_chart: string | null
           created_at: string
           event_date: string
           event_type: Database["public"]["Enums"]["event_type"]
@@ -183,6 +184,7 @@ export type Database = {
         }
         Insert: {
           band_id: string
+          chord_chart?: string | null
           created_at?: string
           event_date: string
           event_type?: Database["public"]["Enums"]["event_type"]
@@ -196,6 +198,7 @@ export type Database = {
         }
         Update: {
           band_id?: string
+          chord_chart?: string | null
           created_at?: string
           event_date?: string
           event_type?: Database["public"]["Enums"]["event_type"]

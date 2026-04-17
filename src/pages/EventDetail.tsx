@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft, Copy, FileText, Pencil, Save, X } from "lucide-react";
+import { Plus, Trash, ArrowUp, ArrowDown, Music, Calendar, Users, Youtube, ChevronLeft, Copy, FileText, Pencil, Save, X, Guitar, Maximize2 } from "lucide-react";
 
 type EventType = 'culto_domingo' | 'culto_quarta' | 'especial';
 
@@ -26,6 +26,7 @@ interface Event {
   notes: string | null;
   youtube_link: string | null;
   lyrics: string | null;
+  chord_chart: string | null;
   bands: { name: string };
 }
 
@@ -40,6 +41,7 @@ interface EventSong {
     name: string;
     key: string | null;
     lyrics: string | null;
+    chord_chart: string | null;
   };
 }
 
@@ -103,6 +105,11 @@ export default function EventDetail() {
   const [compiledLyrics, setCompiledLyrics] = useState("");
   const [isEditingLyrics, setIsEditingLyrics] = useState(false);
   const [editableLyrics, setEditableLyrics] = useState("");
+  const [isCompileChordsOpen, setIsCompileChordsOpen] = useState(false);
+  const [compiledChords, setCompiledChords] = useState("");
+  const [isEditingChords, setIsEditingChords] = useState(false);
+  const [editableChords, setEditableChords] = useState("");
+  const [isFullscreenChords, setIsFullscreenChords] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -163,7 +170,7 @@ export default function EventDetail() {
         .from("event_songs")
         .select(`
           *,
-          songs(id, name, key, lyrics)
+          songs(id, name, key, lyrics, chord_chart)
         `)
         .eq("event_id", id)
         .order("song_order");
@@ -549,6 +556,73 @@ export default function EventDetail() {
     } catch (error) {
       console.error("Error updating lyrics:", error);
       toast({ title: "Erro", description: "Erro ao atualizar letras", variant: "destructive" });
+    }
+  };
+
+  const compileChords = () => {
+    if (eventSongs.length === 0) return;
+
+    const parts: string[] = [];
+    let i = 0;
+    while (i < eventSongs.length) {
+      const song = eventSongs[i];
+      if (song.is_medley && song.medley_group !== null) {
+        const medleySongs: EventSong[] = [];
+        const group = song.medley_group;
+        while (i < eventSongs.length && eventSongs[i].is_medley && eventSongs[i].medley_group === group) {
+          medleySongs.push(eventSongs[i]);
+          i++;
+        }
+        const medleyHeader = `=== MEDLEY: ${medleySongs.map(s => s.songs.name).join(" + ")} ===`;
+        const medleyChords = medleySongs
+          .map(s => s.songs.chord_chart || `[Cifra de "${s.songs.name}" não disponível]`)
+          .join("\n");
+        parts.push(`${medleyHeader}\n\n${medleyChords}`);
+      } else {
+        const header = `=== ${song.songs.name}${song.key_played ? ` (${song.key_played})` : song.songs.key ? ` (${song.songs.key})` : ''} ===`;
+        const chords = song.songs.chord_chart || `[Cifra de "${song.songs.name}" não disponível]`;
+        parts.push(`${header}\n\n${chords}`);
+        i++;
+      }
+    }
+
+    setCompiledChords(parts.join("\n\n\n"));
+    setIsCompileChordsOpen(true);
+  };
+
+  const saveCompiledChords = async () => {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ chord_chart: compiledChords })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setEvent(prev => prev ? { ...prev, chord_chart: compiledChords } : prev);
+      setIsCompileChordsOpen(false);
+      toast({ title: "Sucesso", description: "Cifras do evento salvas!" });
+    } catch (error) {
+      console.error("Error saving chords:", error);
+      toast({ title: "Erro", description: "Erro ao salvar cifras", variant: "destructive" });
+    }
+  };
+
+  const saveChordsEdit = async () => {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ chord_chart: editableChords || null })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setEvent(prev => prev ? { ...prev, chord_chart: editableChords || null } : prev);
+      setIsEditingChords(false);
+      toast({ title: "Sucesso", description: "Cifras atualizadas!" });
+    } catch (error) {
+      console.error("Error updating chords:", error);
+      toast({ title: "Erro", description: "Erro ao atualizar cifras", variant: "destructive" });
     }
   };
 
@@ -984,6 +1058,160 @@ export default function EventDetail() {
           </CardContent>
         </Card>
 
+        {/* Compile Chords Dialog */}
+        <Dialog open={isCompileChordsOpen} onOpenChange={setIsCompileChordsOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Compilar Cifras do Evento</DialogTitle>
+              <DialogDescription>
+                Revise e edite as cifras compiladas antes de salvar
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                value={compiledChords}
+                onChange={(e) => setCompiledChords(e.target.value)}
+                className="min-h-[400px] font-mono text-sm"
+                placeholder="Cifras compiladas..."
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setIsCompileChordsOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={saveCompiledChords}>
+                  <Save className="h-4 w-4 mr-1" />
+                  Salvar Cifras
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Fullscreen Chords Dialog */}
+        <Dialog open={isFullscreenChords} onOpenChange={setIsFullscreenChords}>
+          <DialogContent className="max-w-[100vw] w-screen h-screen sm:max-w-[100vw] sm:rounded-none p-4 md:p-6 flex flex-col">
+            <DialogHeader>
+              <div className="flex items-center justify-between gap-2">
+                <DialogTitle className="flex items-center gap-2">
+                  <Guitar className="h-5 w-5" />
+                  Cifra - {event.name}
+                </DialogTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(event.chord_chart || "");
+                    toast({ title: "Copiado!", description: "Cifra copiada para a área de transferência." });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copiar
+                </Button>
+              </div>
+            </DialogHeader>
+            <pre className="flex-1 overflow-auto whitespace-pre-wrap font-mono text-sm md:text-base text-foreground bg-muted/30 p-4 rounded-lg">
+              {event.chord_chart}
+            </pre>
+          </DialogContent>
+        </Dialog>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <div>
+                <CardTitle>Cifra do Evento</CardTitle>
+                <CardDescription>
+                  Cifra completa conforme será tocada
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(userRole === 'superuser' || userRole === 'band_admin') && eventSongs.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      compileChords();
+                    }}
+                  >
+                    <Guitar className="h-4 w-4 mr-1" />
+                    Compilar Cifras
+                  </Button>
+                )}
+                {event.chord_chart && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsFullscreenChords(true)}
+                    >
+                      <Maximize2 className="h-4 w-4 mr-1" />
+                      Tela cheia
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(event.chord_chart || "");
+                        toast({
+                          title: "Copiado!",
+                          description: "Cifra copiada para a área de transferência.",
+                        });
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copiar
+                    </Button>
+                  </>
+                )}
+                {(userRole === 'superuser' || userRole === 'band_admin') && !isEditingChords && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditableChords(event.chord_chart || "");
+                      setIsEditingChords(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isEditingChords ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={editableChords}
+                  onChange={(e) => setEditableChords(e.target.value)}
+                  className="min-h-[300px] font-mono text-sm"
+                  placeholder="Cifras do evento..."
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingChords(false)}>
+                    <X className="h-4 w-4 mr-1" />
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={saveChordsEdit}>
+                    <Save className="h-4 w-4 mr-1" />
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            ) : event.chord_chart ? (
+              <pre className="whitespace-pre-wrap font-mono text-sm text-foreground bg-muted/50 p-4 rounded-lg overflow-x-auto">
+                {event.chord_chart}
+              </pre>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <Guitar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma cifra compilada</p>
+                <p className="text-xs">Use o botão "Compilar Cifras" para gerar automaticamente</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
