@@ -559,6 +559,73 @@ export default function EventDetail() {
     }
   };
 
+  const compileChords = () => {
+    if (eventSongs.length === 0) return;
+
+    const parts: string[] = [];
+    let i = 0;
+    while (i < eventSongs.length) {
+      const song = eventSongs[i];
+      if (song.is_medley && song.medley_group !== null) {
+        const medleySongs: EventSong[] = [];
+        const group = song.medley_group;
+        while (i < eventSongs.length && eventSongs[i].is_medley && eventSongs[i].medley_group === group) {
+          medleySongs.push(eventSongs[i]);
+          i++;
+        }
+        const medleyHeader = `=== MEDLEY: ${medleySongs.map(s => s.songs.name).join(" + ")} ===`;
+        const medleyChords = medleySongs
+          .map(s => s.songs.chord_chart || `[Cifra de "${s.songs.name}" não disponível]`)
+          .join("\n");
+        parts.push(`${medleyHeader}\n\n${medleyChords}`);
+      } else {
+        const header = `=== ${song.songs.name}${song.key_played ? ` (${song.key_played})` : song.songs.key ? ` (${song.songs.key})` : ''} ===`;
+        const chords = song.songs.chord_chart || `[Cifra de "${song.songs.name}" não disponível]`;
+        parts.push(`${header}\n\n${chords}`);
+        i++;
+      }
+    }
+
+    setCompiledChords(parts.join("\n\n\n"));
+    setIsCompileChordsOpen(true);
+  };
+
+  const saveCompiledChords = async () => {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ chord_chart: compiledChords })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setEvent(prev => prev ? { ...prev, chord_chart: compiledChords } : prev);
+      setIsCompileChordsOpen(false);
+      toast({ title: "Sucesso", description: "Cifras do evento salvas!" });
+    } catch (error) {
+      console.error("Error saving chords:", error);
+      toast({ title: "Erro", description: "Erro ao salvar cifras", variant: "destructive" });
+    }
+  };
+
+  const saveChordsEdit = async () => {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ chord_chart: editableChords || null })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setEvent(prev => prev ? { ...prev, chord_chart: editableChords || null } : prev);
+      setIsEditingChords(false);
+      toast({ title: "Sucesso", description: "Cifras atualizadas!" });
+    } catch (error) {
+      console.error("Error updating chords:", error);
+      toast({ title: "Erro", description: "Erro ao atualizar cifras", variant: "destructive" });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
