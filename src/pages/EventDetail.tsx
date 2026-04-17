@@ -1058,6 +1058,160 @@ export default function EventDetail() {
           </CardContent>
         </Card>
 
+        {/* Compile Chords Dialog */}
+        <Dialog open={isCompileChordsOpen} onOpenChange={setIsCompileChordsOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Compilar Cifras do Evento</DialogTitle>
+              <DialogDescription>
+                Revise e edite as cifras compiladas antes de salvar
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                value={compiledChords}
+                onChange={(e) => setCompiledChords(e.target.value)}
+                className="min-h-[400px] font-mono text-sm"
+                placeholder="Cifras compiladas..."
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setIsCompileChordsOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={saveCompiledChords}>
+                  <Save className="h-4 w-4 mr-1" />
+                  Salvar Cifras
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Fullscreen Chords Dialog */}
+        <Dialog open={isFullscreenChords} onOpenChange={setIsFullscreenChords}>
+          <DialogContent className="max-w-[100vw] w-screen h-screen sm:max-w-[100vw] sm:rounded-none p-4 md:p-6 flex flex-col">
+            <DialogHeader>
+              <div className="flex items-center justify-between gap-2">
+                <DialogTitle className="flex items-center gap-2">
+                  <Guitar className="h-5 w-5" />
+                  Cifra - {event.name}
+                </DialogTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(event.chord_chart || "");
+                    toast({ title: "Copiado!", description: "Cifra copiada para a área de transferência." });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copiar
+                </Button>
+              </div>
+            </DialogHeader>
+            <pre className="flex-1 overflow-auto whitespace-pre-wrap font-mono text-sm md:text-base text-foreground bg-muted/30 p-4 rounded-lg">
+              {event.chord_chart}
+            </pre>
+          </DialogContent>
+        </Dialog>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <div>
+                <CardTitle>Cifra do Evento</CardTitle>
+                <CardDescription>
+                  Cifra completa conforme será tocada
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(userRole === 'superuser' || userRole === 'band_admin') && eventSongs.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      compileChords();
+                    }}
+                  >
+                    <Guitar className="h-4 w-4 mr-1" />
+                    Compilar Cifras
+                  </Button>
+                )}
+                {event.chord_chart && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsFullscreenChords(true)}
+                    >
+                      <Maximize2 className="h-4 w-4 mr-1" />
+                      Tela cheia
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(event.chord_chart || "");
+                        toast({
+                          title: "Copiado!",
+                          description: "Cifra copiada para a área de transferência.",
+                        });
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copiar
+                    </Button>
+                  </>
+                )}
+                {(userRole === 'superuser' || userRole === 'band_admin') && !isEditingChords && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditableChords(event.chord_chart || "");
+                      setIsEditingChords(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isEditingChords ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={editableChords}
+                  onChange={(e) => setEditableChords(e.target.value)}
+                  className="min-h-[300px] font-mono text-sm"
+                  placeholder="Cifras do evento..."
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingChords(false)}>
+                    <X className="h-4 w-4 mr-1" />
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={saveChordsEdit}>
+                    <Save className="h-4 w-4 mr-1" />
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            ) : event.chord_chart ? (
+              <pre className="whitespace-pre-wrap font-mono text-sm text-foreground bg-muted/50 p-4 rounded-lg overflow-x-auto">
+                {event.chord_chart}
+              </pre>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <Guitar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma cifra compilada</p>
+                <p className="text-xs">Use o botão "Compilar Cifras" para gerar automaticamente</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
