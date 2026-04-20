@@ -733,11 +733,11 @@ export default function Events() {
                               const chords = medleySongs
                                 .map(s => {
                                   const sd = songsMap.get(s.song_id);
-                                  const songHeader = `--- ${s.song.name}${s.key_played ? ` (${s.key_played})` : s.song.key ? ` (${s.song.key})` : ''} ---`;
+                                  const songHeader = `${s.song.name}${s.key_played ? ` (${s.key_played})` : s.song.key ? ` (${s.song.key})` : ''}`;
                                   const songChords = sd?.chord_chart || `[Cifra de "${s.song.name}" não disponível]`;
-                                  return `${songHeader}\n${songChords}`;
+                                  return `${songHeader}\n\n${songChords}`;
                                 })
-                                .join("\n\n");
+                                .join("\n\n\n");
                               parts.push(`${header}\n\n${chords}`);
                             } else {
                               const header = `=== ${es.song.name}${es.key_played ? ` (${es.key_played})` : es.song.key ? ` (${es.song.key})` : ''} ===`;

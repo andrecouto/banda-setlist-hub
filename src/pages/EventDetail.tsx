@@ -575,8 +575,12 @@ export default function EventDetail() {
         }
         const medleyHeader = `=== MEDLEY: ${medleySongs.map(s => s.songs.name).join(" + ")} ===`;
         const medleyChords = medleySongs
-          .map(s => s.songs.chord_chart || `[Cifra de "${s.songs.name}" não disponível]`)
-          .join("\n");
+          .map((s) => {
+            const songHeader = `${s.songs.name}${s.key_played ? ` (${s.key_played})` : s.songs.key ? ` (${s.songs.key})` : ''}`;
+            const songChords = s.songs.chord_chart || `[Cifra de "${s.songs.name}" não disponível]`;
+            return `${songHeader}\n\n${songChords}`;
+          })
+          .join("\n\n\n");
         parts.push(`${medleyHeader}\n\n${medleyChords}`);
       } else {
         const header = `=== ${song.songs.name}${song.key_played ? ` (${song.key_played})` : song.songs.key ? ` (${song.songs.key})` : ''} ===`;
