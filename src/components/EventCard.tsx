@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Copy, FileText, Save, Pencil } from "lucide-react";
+import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Copy, FileText, Save, Pencil, Guitar, Maximize2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,7 @@ interface EventCardProps {
     notes: string | null;
     youtube_link: string | null;
     lyrics?: string | null;
+    chord_chart?: string | null;
     bands: { name: string };
     profiles: { name: string } | null;
     songs?: { name: string; key_played: string | null }[];
@@ -28,9 +29,10 @@ interface EventCardProps {
   onDelete?: (id: string) => void;
   canManage?: boolean;
   onLyricsUpdate?: (id: string, lyrics: string) => void;
+  onChordsUpdate?: (id: string, chords: string) => void;
 }
 
-export function EventCard({ event, onEdit, onDelete, canManage = false, onLyricsUpdate }: EventCardProps) {
+export function EventCard({ event, onEdit, onDelete, canManage = false, onLyricsUpdate, onChordsUpdate }: EventCardProps) {
   const eventDate = new Date(event.event_date + 'T00:00:00');
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
@@ -40,10 +42,40 @@ export function EventCard({ event, onEdit, onDelete, canManage = false, onLyrics
   const [editedLyrics, setEditedLyrics] = useState(event.lyrics || "");
   const [saving, setSaving] = useState(false);
 
+  const [chordsOpen, setChordsOpen] = useState(false);
+  const [chordsFullscreen, setChordsFullscreen] = useState(false);
+  const [isEditingChords, setIsEditingChords] = useState(false);
+  const [editedChords, setEditedChords] = useState(event.chord_chart || "");
+  const [savingChords, setSavingChords] = useState(false);
+
   const handleOpenLyrics = () => {
     setEditedLyrics(event.lyrics || "");
     setIsEditing(false);
     setLyricsOpen(true);
+  };
+
+  const handleOpenChords = () => {
+    setEditedChords(event.chord_chart || "");
+    setIsEditingChords(false);
+    setChordsOpen(true);
+  };
+
+  const handleSaveChords = async () => {
+    setSavingChords(true);
+    const { error } = await supabase
+      .from("events")
+      .update({ chord_chart: editedChords })
+      .eq("id", event.id);
+    setSavingChords(false);
+
+    if (error) {
+      toast({ title: "Erro", description: "Não foi possível salvar a cifra.", variant: "destructive" });
+    } else {
+      toast({ title: "Salvo!", description: "Cifra atualizada com sucesso." });
+      event.chord_chart = editedChords;
+      onChordsUpdate?.(event.id, editedChords);
+      setIsEditingChords(false);
+    }
   };
 
   const handleSaveLyrics = async () => {
