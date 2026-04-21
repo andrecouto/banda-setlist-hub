@@ -331,6 +331,115 @@ export function EventCard({ event, onEdit, onDelete, canManage = false, onLyrics
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cifra Dialog */}
+      <Dialog open={chordsOpen} onOpenChange={setChordsOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Guitar className="h-5 w-5" />
+              Cifra - {event.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          {isEditingChords ? (
+            <Textarea
+              value={editedChords}
+              onChange={(e) => setEditedChords(e.target.value)}
+              className="flex-1 min-h-[300px] max-h-[55vh] font-mono text-sm"
+            />
+          ) : (
+            <pre className="flex-1 overflow-y-auto whitespace-pre-wrap font-mono text-sm text-foreground border rounded-md p-4 bg-muted/30">
+              {editedChords || event.chord_chart}
+            </pre>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {isEditingChords ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setEditedChords(event.chord_chart || "");
+                    setIsEditingChords(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSaveChords}
+                  disabled={savingChords}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {savingChords ? "Salvando..." : "Salvar"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(event.chord_chart || "");
+                    toast({ title: "Copiado!", description: "Cifra copiada para a área de transferência." });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setChordsFullscreen(true)}
+                >
+                  <Maximize2 className="h-4 w-4 mr-2" />
+                  Tela cheia
+                </Button>
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setIsEditingChords(true)}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cifra Fullscreen Dialog */}
+      <Dialog open={chordsFullscreen} onOpenChange={setChordsFullscreen}>
+        <DialogContent className="max-w-[100vw] w-screen h-screen sm:max-w-[100vw] sm:rounded-none p-4 md:p-6 flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-2 pr-8">
+              <DialogTitle className="flex items-center gap-2">
+                <Guitar className="h-5 w-5" />
+                Cifra - {event.name}
+              </DialogTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(event.chord_chart || "");
+                  toast({ title: "Copiado!", description: "Cifra copiada." });
+                }}
+              >
+                <Copy className="h-4 w-4 mr-1" />
+                Copiar
+              </Button>
+            </div>
+          </DialogHeader>
+          <pre className="flex-1 overflow-auto whitespace-pre-wrap font-mono text-sm md:text-base text-foreground bg-muted/30 p-4 rounded-lg">
+            {event.chord_chart}
+          </pre>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
