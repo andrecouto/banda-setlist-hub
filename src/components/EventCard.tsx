@@ -241,6 +241,17 @@ export function EventCard({ event, onEdit, onDelete, canManage = false, onLyrics
                 <span className="hidden sm:inline">Letras</span>
               </Button>
             )}
+            {event.chord_chart && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1 h-7 px-2 text-xs sm:h-8 sm:px-3"
+                onClick={handleOpenChords}
+              >
+                <Guitar className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Cifra</span>
+              </Button>
+            )}
             <Link to={`/events/${event.id}`}>
               <Button variant="outline" size="sm" className="flex items-center gap-1 h-7 px-2 text-xs sm:h-8 sm:px-3">
                 <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
