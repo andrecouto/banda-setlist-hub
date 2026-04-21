@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Copy, FileText, Save, Pencil } from "lucide-react";
+import { Calendar, Users, Music, Youtube, Edit, Trash, Eye, Copy, FileText, Save, Pencil, Guitar, Maximize2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,7 @@ interface EventCardProps {
     notes: string | null;
     youtube_link: string | null;
     lyrics?: string | null;
+    chord_chart?: string | null;
     bands: { name: string };
     profiles: { name: string } | null;
     songs?: { name: string; key_played: string | null }[];
@@ -28,9 +29,10 @@ interface EventCardProps {
   onDelete?: (id: string) => void;
   canManage?: boolean;
   onLyricsUpdate?: (id: string, lyrics: string) => void;
+  onChordsUpdate?: (id: string, chords: string) => void;
 }
 
-export function EventCard({ event, onEdit, onDelete, canManage = false, onLyricsUpdate }: EventCardProps) {
+export function EventCard({ event, onEdit, onDelete, canManage = false, onLyricsUpdate, onChordsUpdate }: EventCardProps) {
   const eventDate = new Date(event.event_date + 'T00:00:00');
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
@@ -40,10 +42,40 @@ export function EventCard({ event, onEdit, onDelete, canManage = false, onLyrics
   const [editedLyrics, setEditedLyrics] = useState(event.lyrics || "");
   const [saving, setSaving] = useState(false);
 
+  const [chordsOpen, setChordsOpen] = useState(false);
+  const [chordsFullscreen, setChordsFullscreen] = useState(false);
+  const [isEditingChords, setIsEditingChords] = useState(false);
+  const [editedChords, setEditedChords] = useState(event.chord_chart || "");
+  const [savingChords, setSavingChords] = useState(false);
+
   const handleOpenLyrics = () => {
     setEditedLyrics(event.lyrics || "");
     setIsEditing(false);
     setLyricsOpen(true);
+  };
+
+  const handleOpenChords = () => {
+    setEditedChords(event.chord_chart || "");
+    setIsEditingChords(false);
+    setChordsOpen(true);
+  };
+
+  const handleSaveChords = async () => {
+    setSavingChords(true);
+    const { error } = await supabase
+      .from("events")
+      .update({ chord_chart: editedChords })
+      .eq("id", event.id);
+    setSavingChords(false);
+
+    if (error) {
+      toast({ title: "Erro", description: "Não foi possível salvar a cifra.", variant: "destructive" });
+    } else {
+      toast({ title: "Salvo!", description: "Cifra atualizada com sucesso." });
+      event.chord_chart = editedChords;
+      onChordsUpdate?.(event.id, editedChords);
+      setIsEditingChords(false);
+    }
   };
 
   const handleSaveLyrics = async () => {
@@ -209,6 +241,17 @@ export function EventCard({ event, onEdit, onDelete, canManage = false, onLyrics
                 <span className="hidden sm:inline">Letras</span>
               </Button>
             )}
+            {event.chord_chart && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1 h-7 px-2 text-xs sm:h-8 sm:px-3"
+                onClick={handleOpenChords}
+              >
+                <Guitar className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Cifra</span>
+              </Button>
+            )}
             <Link to={`/events/${event.id}`}>
               <Button variant="outline" size="sm" className="flex items-center gap-1 h-7 px-2 text-xs sm:h-8 sm:px-3">
                 <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -286,6 +329,115 @@ export function EventCard({ event, onEdit, onDelete, canManage = false, onLyrics
               </>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cifra Dialog */}
+      <Dialog open={chordsOpen} onOpenChange={setChordsOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Guitar className="h-5 w-5" />
+              Cifra - {event.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          {isEditingChords ? (
+            <Textarea
+              value={editedChords}
+              onChange={(e) => setEditedChords(e.target.value)}
+              className="flex-1 min-h-[300px] max-h-[55vh] font-mono text-sm"
+            />
+          ) : (
+            <pre className="flex-1 overflow-y-auto whitespace-pre-wrap font-mono text-sm text-foreground border rounded-md p-4 bg-muted/30">
+              {editedChords || event.chord_chart}
+            </pre>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {isEditingChords ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setEditedChords(event.chord_chart || "");
+                    setIsEditingChords(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSaveChords}
+                  disabled={savingChords}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {savingChords ? "Salvando..." : "Salvar"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(event.chord_chart || "");
+                    toast({ title: "Copiado!", description: "Cifra copiada para a área de transferência." });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setChordsFullscreen(true)}
+                >
+                  <Maximize2 className="h-4 w-4 mr-2" />
+                  Tela cheia
+                </Button>
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setIsEditingChords(true)}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cifra Fullscreen Dialog */}
+      <Dialog open={chordsFullscreen} onOpenChange={setChordsFullscreen}>
+        <DialogContent className="max-w-[100vw] w-screen h-screen sm:max-w-[100vw] sm:rounded-none p-4 md:p-6 flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-2 pr-8">
+              <DialogTitle className="flex items-center gap-2">
+                <Guitar className="h-5 w-5" />
+                Cifra - {event.name}
+              </DialogTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(event.chord_chart || "");
+                  toast({ title: "Copiado!", description: "Cifra copiada." });
+                }}
+              >
+                <Copy className="h-4 w-4 mr-1" />
+                Copiar
+              </Button>
+            </div>
+          </DialogHeader>
+          <pre className="flex-1 overflow-auto whitespace-pre-wrap font-mono text-sm md:text-base text-foreground bg-muted/30 p-4 rounded-lg">
+            {event.chord_chart}
+          </pre>
         </DialogContent>
       </Dialog>
     </Card>
